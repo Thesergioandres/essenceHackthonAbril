@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="ruraTitle ruraDesc">
+  <title id="ruraTitle">RURA</title>
+  <desc id="ruraDesc">Isotipo circular de RURA</desc>
+  <defs>
+    <linearGradient id="ruraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f9b4c" />
+      <stop offset="100%" stop-color="#0b6a35" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#ruraGradient)" />
+  <path d="M20 44V20h12c7.2 0 12 4.4 12 11.5S39.2 44 32 44H20Zm8-6h4c3 0 5.8-2.2 5.8-6.5S35 25 32 25h-4v13Z" fill="#f6fff8" />
+</svg>

@@ -44,7 +44,12 @@ const bodyFont = Inter({
 
 export const metadata: Metadata = {
   title: "RURA | Red Urbana de Rescate Alimentario",
-  description: "Frontend base with Clean Architecture, Tailwind and GSAP."
+  description: "Frontend base with Clean Architecture, Tailwind and GSAP.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg"
+  }
 };
 
 interface RootLayoutProps {
@@ -60,6 +65,7 @@ const RootLayout = ({ children }: RootLayoutProps): JSX.Element => {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitializerScript }} />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1"
