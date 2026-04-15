@@ -1,19 +1,23 @@
 import cors from "cors";
-import express, { Express, NextFunction, Request, RequestHandler, Response } from "express";
-import { DomainError } from "../domain/errors/DomainError";
+import express, { Express, Request, RequestHandler, Response } from "express";
 import { DonationController } from "./http/controllers/DonationController";
 import { HealthController } from "./http/controllers/HealthController";
+import { OrganizationController } from "./http/controllers/OrganizationController";
+import { errorHandlerMiddleware } from "./http/middlewares/errorHandlerMiddleware";
 import { createDonationRoutes } from "./http/routes/donationRoutes";
 import { createHealthRoutes } from "./http/routes/healthRoutes";
+import { createOrganizationRoutes } from "./http/routes/organizationRoutes";
 
 interface CreateAppDependencies {
   healthController: HealthController;
+  organizationController: OrganizationController;
   donationController: DonationController;
   tenantAuthMiddleware: RequestHandler;
 }
 
 export const createApp = ({
   healthController,
+  organizationController,
   donationController,
   tenantAuthMiddleware
 }: CreateAppDependencies): Express => {
@@ -30,32 +34,10 @@ export const createApp = ({
   });
 
   app.use("/api", createHealthRoutes(healthController));
+  app.use("/api", createOrganizationRoutes(organizationController));
   app.use("/api", createDonationRoutes(donationController, tenantAuthMiddleware));
 
-  app.use(
-    (error: unknown, _request: Request, response: Response, _next: NextFunction) => {
-      if (error instanceof DomainError) {
-        response.status(error.statusCode).json({
-          error: {
-            code: error.code,
-            message: error.message
-          }
-        });
-
-        return;
-      }
-
-      const message =
-        error instanceof Error ? error.message : "Unexpected backend error";
-
-      response.status(500).json({
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message
-        }
-      });
-    }
-  );
+  app.use(errorHandlerMiddleware);
 
   return app;
 };

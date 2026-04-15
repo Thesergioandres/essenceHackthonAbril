@@ -1,31 +1,17 @@
 import { model, Schema, type HydratedDocument } from "mongoose";
-import { SubscriptionPlan } from "../../../domain/entities/Organization";
+import { OrganizationPlan } from "../../../domain/entities/Organization";
 
-const SUBSCRIPTION_PLANS: SubscriptionPlan[] = ["starter", "growth", "enterprise"];
+const ORGANIZATION_PLANS: OrganizationPlan[] = ["starter", "growth", "enterprise"];
 
 export interface OrganizationPersistence {
-  tenantId: string;
   name: string;
-  ownerId: string;
   isActive: boolean;
-  subscriptionPlan: SubscriptionPlan;
+  plan: OrganizationPlan;
 }
 
 const organizationSchema = new Schema<OrganizationPersistence>(
   {
-    tenantId: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-      trim: true
-    },
     name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    ownerId: {
       type: String,
       required: true,
       trim: true
@@ -35,9 +21,9 @@ const organizationSchema = new Schema<OrganizationPersistence>(
       required: true,
       default: true
     },
-    subscriptionPlan: {
+    plan: {
       type: String,
-      enum: SUBSCRIPTION_PLANS,
+      enum: ORGANIZATION_PLANS,
       required: true
     }
   },

@@ -1,38 +1,15 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ForbiddenError } from "../../../domain/errors/ForbiddenError";
-import { NotFoundError } from "../../../domain/errors/NotFoundError";
-import { ValidationError } from "../../../domain/errors/ValidationError";
 import { IOrganizationRepository } from "../../../domain/repositories/IOrganizationRepository";
 
-interface TenantRequestBody {
-  tenantId?: unknown;
-}
+const resolveTenantIdFromHeader = (request: Request): string => {
+  const tenantId = request.header("x-tenant-id");
 
-const resolveTenantId = (request: Request): string => {
-  const fromParams = request.params.tenantId;
-  const fromHeader = request.header("x-tenant-id");
-
-  const fromQuery =
-    typeof request.query.tenantId === "string" ? request.query.tenantId : undefined;
-
-  const fromBody =
-    typeof request.body === "object" && request.body !== null
-      ? (request.body as TenantRequestBody).tenantId
-      : undefined;
-
-  const candidate =
-    fromParams ??
-    fromHeader ??
-    (typeof fromBody === "string" ? fromBody : undefined) ??
-    fromQuery;
-
-  if (!candidate || candidate.trim().length === 0) {
-    throw new ValidationError(
-      "tenantId is required in params, body, query or x-tenant-id header."
-    );
+  if (!tenantId || tenantId.trim().length === 0) {
+    throw new ForbiddenError("x-tenant-id header is required.");
   }
 
-  return candidate.trim();
+  return tenantId.trim();
 };
 
 export const createTenantAuthMiddleware = (
@@ -44,16 +21,12 @@ export const createTenantAuthMiddleware = (
     next: NextFunction
   ): Promise<void> => {
     try {
-      const tenantId = resolveTenantId(request);
+      const tenantId = resolveTenantIdFromHeader(request);
       const organization = await organizationRepository.findByTenantId(tenantId);
 
-      if (!organization) {
-        throw new NotFoundError("Tenant organization not found.");
-      }
-
-      if (!organization.isActive) {
+      if (!organization || !organization.isActive) {
         throw new ForbiddenError(
-          "Tenant access is blocked because subscription is inactive."
+          "Tenant access is blocked because organization does not exist or is inactive."
         );
       }
 

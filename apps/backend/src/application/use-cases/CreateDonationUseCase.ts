@@ -43,6 +43,10 @@ export class CreateDonationUseCase {
       throw new NotFoundError("Tenant organization not found.");
     }
 
+    if (!organization.isActive) {
+      throw new ValidationError("Tenant organization is inactive.");
+    }
+
     return this.donationRepository.create({
       tenantId,
       title,

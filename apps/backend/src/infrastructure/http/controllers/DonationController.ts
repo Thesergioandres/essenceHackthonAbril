@@ -4,10 +4,10 @@ import {
   CreateDonationUseCase
 } from "../../../application/use-cases/CreateDonationUseCase";
 import { ListTenantDonationsUseCase } from "../../../application/use-cases/ListTenantDonationsUseCase";
+import { ForbiddenError } from "../../../domain/errors/ForbiddenError";
 import { ValidationError } from "../../../domain/errors/ValidationError";
 
 interface CreateDonationRequestBody {
-  tenantId?: unknown;
   title?: unknown;
   quantity?: unknown;
   expirationDate?: unknown;
@@ -25,7 +25,10 @@ export class DonationController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const input = this.parseCreateDonationInput(request.body);
+      const input = this.attachTenantId(
+        request,
+        this.parseCreateDonationInput(request.body)
+      );
       const donation = await this.createDonationUseCase.execute(input);
       response.status(201).json(donation);
     } catch (error: unknown) {
@@ -34,17 +37,12 @@ export class DonationController {
   };
 
   listByTenant = async (
-    request: Request<{ tenantId: string }>,
+    request: Request,
     response: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const tenantId = request.params.tenantId;
-
-      if (!tenantId) {
-        throw new ValidationError("tenantId route param is required.");
-      }
-
+      const tenantId = this.resolveTenantId(request);
       const donations = await this.listTenantDonationsUseCase.execute(tenantId);
       response.status(200).json(donations);
     } catch (error: unknown) {
@@ -53,10 +51,6 @@ export class DonationController {
   };
 
   private parseCreateDonationInput(body: CreateDonationRequestBody): CreateDonationInput {
-    if (typeof body.tenantId !== "string") {
-      throw new ValidationError("tenantId must be a string.");
-    }
-
     if (typeof body.title !== "string") {
       throw new ValidationError("title must be a string.");
     }
@@ -68,11 +62,21 @@ export class DonationController {
     const expirationDate = this.parseExpirationDate(body.expirationDate);
 
     return {
-      tenantId: body.tenantId,
+      tenantId: "",
       title: body.title,
       quantity: body.quantity,
       expirationDate
     };
+  }
+
+  private resolveTenantId(request: Request): string {
+    const tenantId = request.header("x-tenant-id");
+
+    if (!tenantId || tenantId.trim().length === 0) {
+      throw new ForbiddenError("x-tenant-id header is required.");
+    }
+
+    return tenantId.trim();
   }
 
   private parseExpirationDate(value: unknown): Date {
@@ -87,5 +91,15 @@ export class DonationController {
     }
 
     return parsedDate;
+  }
+
+  private attachTenantId(
+    request: Request,
+    input: CreateDonationInput
+  ): CreateDonationInput {
+    return {
+      ...input,
+      tenantId: this.resolveTenantId(request)
+    };
   }
 }

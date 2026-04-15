@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const DEFAULT_PORT = 3001;
+const DEFAULT_PORT = 4000;
 const DEFAULT_MONGODB_URI = "mongodb://localhost:27017/rura";
 
 const parsePort = (value: string | undefined): number => {

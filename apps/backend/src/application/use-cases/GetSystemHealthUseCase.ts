@@ -1,25 +1,18 @@
-import {
-  DatabaseStatus,
-  SystemHealthRepository
-} from "../../domain/repositories/SystemHealthRepository";
-
 export interface SystemHealthResponse {
   service: "backend";
-  status: "ok" | "degraded";
-  database: DatabaseStatus;
+  status: "ok";
+  uptimeSeconds: number;
   timestamp: string;
 }
 
 export class GetSystemHealthUseCase {
-  constructor(private readonly healthRepository: SystemHealthRepository) {}
-
   async execute(): Promise<SystemHealthResponse> {
-    const database = await this.healthRepository.getDatabaseStatus();
+    const uptimeSeconds = Math.floor(process.uptime());
 
     return {
       service: "backend",
-      status: database === "connected" ? "ok" : "degraded",
-      database,
+      status: "ok",
+      uptimeSeconds,
       timestamp: new Date().toISOString()
     };
   }

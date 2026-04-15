@@ -5,10 +5,9 @@ const USER_ROLES: UserRole[] = ["god", "super_admin", "employee"];
 
 export interface UserPersistence {
   tenantId: string;
+  name: string;
   email: string;
-  passwordHash: string;
   role: UserRole;
-  tenantIds: string[];
 }
 
 const userSchema = new Schema<UserPersistence>(
@@ -19,26 +18,21 @@ const userSchema = new Schema<UserPersistence>(
       index: true,
       trim: true
     },
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true
-    },
-    passwordHash: {
-      type: String,
-      required: true
     },
     role: {
       type: String,
       enum: USER_ROLES,
       required: true
-    },
-    tenantIds: {
-      type: [String],
-      required: true,
-      default: []
     }
   },
   {
@@ -47,7 +41,7 @@ const userSchema = new Schema<UserPersistence>(
   }
 );
 
-userSchema.index({ tenantIds: 1 });
+userSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 
 export type UserDocument = HydratedDocument<UserPersistence>;
 

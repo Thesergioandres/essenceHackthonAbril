@@ -2,8 +2,8 @@ export type UserRole = "god" | "super_admin" | "employee";
 
 export interface User {
   id: string;
+  tenantId: string;
+  name: string;
   email: string;
-  passwordHash: string;
   role: UserRole;
-  tenantIds: string[];
 }

@@ -7,12 +7,9 @@ export const createDonationRoutes = (
 ): Router => {
   const router = Router();
 
-  router.post("/donations", tenantAuthMiddleware, donationController.create);
-  router.get(
-    "/tenants/:tenantId/donations",
-    tenantAuthMiddleware,
-    donationController.listByTenant
-  );
+  router.use("/donations", tenantAuthMiddleware);
+  router.post("/donations", donationController.create);
+  router.get("/donations", donationController.listByTenant);
 
   return router;
 };

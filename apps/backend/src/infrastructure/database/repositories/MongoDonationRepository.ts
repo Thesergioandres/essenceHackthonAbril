@@ -1,12 +1,12 @@
-import { Donation } from "../../domain/entities/Donation";
-import { RepositoryError } from "../../domain/errors/RepositoryError";
+import { Donation } from "../../../domain/entities/Donation";
+import { RepositoryError } from "../../../domain/errors/RepositoryError";
 import {
   CreateDonationRecord,
   IDonationRepository
-} from "../../domain/repositories/IDonationRepository";
-import { DonationDocument, DonationModel } from "../database/models/DonationModel";
+} from "../../../domain/repositories/IDonationRepository";
+import { DonationDocument, DonationModel } from "../models/DonationModel";
 
-const mapToDomain = (document: DonationDocument): Donation => {
+const mapDonation = (document: DonationDocument): Donation => {
   return {
     id: document.id,
     tenantId: document.tenantId,
@@ -28,7 +28,7 @@ export class MongoDonationRepository implements IDonationRepository {
         expirationDate: record.expirationDate
       });
 
-      return mapToDomain(donation);
+      return mapDonation(donation);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Unknown persistence failure";
@@ -43,12 +43,12 @@ export class MongoDonationRepository implements IDonationRepository {
         .sort({ expirationDate: 1 })
         .exec();
 
-      return donations.map(mapToDomain);
+      return donations.map(mapDonation);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Unknown persistence failure";
 
-      throw new RepositoryError(`Donation lookup failed: ${message}`);
+      throw new RepositoryError(`Donation query failed: ${message}`);
     }
   }
 }
