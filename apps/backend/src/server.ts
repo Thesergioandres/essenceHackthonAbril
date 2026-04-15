@@ -149,7 +149,7 @@ const bootstrap = async (): Promise<void> => {
   }, DELIVERY_GUARANTEE_POLLING_INTERVAL_MS);
 
   app.listen(env.port, () => {
-    console.info(`RURA backend listening on port ${env.port}.`);
+    console.info(`Server running on port ${env.port}`);
   });
 };
 
