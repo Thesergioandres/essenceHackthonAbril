@@ -122,6 +122,11 @@ const RegisterPage = (): JSX.Element => {
       return;
     }
 
+    const normalizedOrganizationAddress =
+      organizationAddress.length > 0
+        ? organizationAddress
+        : `${organizationLat.toFixed(6)}, ${organizationLng.toFixed(6)}`;
+
     if (userName.length < 3) {
       setSubmitError("El nombre del usuario debe tener al menos 3 caracteres.");
       return;
@@ -150,9 +155,9 @@ const RegisterPage = (): JSX.Element => {
       const organization = await createOrganization({
         name: organizationName,
         location: {
+          addressString: normalizedOrganizationAddress,
           lat: organizationLat,
-          lng: organizationLng,
-          ...(organizationAddress.length > 0 ? { addressString: organizationAddress } : {})
+          lng: organizationLng
         }
       });
 
@@ -279,6 +284,7 @@ const RegisterPage = (): JSX.Element => {
                     </span>
                     <LocationPickerMap
                       className="mt-2"
+                      enableFullscreenOnMapClick
                       selectedLocation={selectedLocation}
                       onLocationSelect={(location) => {
                         setFormState((current) => ({
