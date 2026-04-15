@@ -7,7 +7,7 @@ import {
   type MapMouseEvent
 } from "@vis.gl/react-google-maps";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { OrganizationLocation } from "@/domain/models/Organization";
+import type { OrganizationLocation } from "@/domain/models/Organization";
 import { useTheme } from "@/infrastructure/ui/theme/ThemeProvider";
 
 interface LocationPickerMapProps {
@@ -165,13 +165,10 @@ export const LocationPickerMap = ({
   onLocationSelect,
   className
 }: LocationPickerMapProps): JSX.Element => {
-<<<<<<< HEAD
   const { theme } = useTheme();
-=======
   const [isResolvingAddress, setIsResolvingAddress] = useState<boolean>(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const latestSelectionId = useRef<number>(0);
->>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
 
   const markerPosition = useMemo(() => {
     return {
@@ -180,16 +177,11 @@ export const LocationPickerMap = ({
     };
   }, [selectedLocation.lat, selectedLocation.lng]);
 
-<<<<<<< HEAD
   const mapId =
     theme === "dark" && GOOGLE_MAPS_MAP_ID_DARK.length > 0
       ? GOOGLE_MAPS_MAP_ID_DARK
       : GOOGLE_MAPS_MAP_ID;
 
-  const handleMapClick = useCallback(
-    (event: MapMouseEvent): void => {
-      if (!event.detail.latLng) {
-=======
   const updateLocation = useCallback(
     async (coordinates: LatLngLiteral): Promise<void> => {
       const selectionId = latestSelectionId.current + 1;
@@ -211,7 +203,6 @@ export const LocationPickerMap = ({
       }
 
       if (latestSelectionId.current !== selectionId) {
->>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
         return;
       }
 
@@ -268,13 +259,8 @@ export const LocationPickerMap = ({
   if (GOOGLE_MAPS_API_KEY.length === 0) {
     return (
       <div className={rootClassName}>
-<<<<<<< HEAD
-        <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/25 dark:text-amber-300">
+        <div className="rounded-3xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/25 dark:text-amber-300">
           Configura NEXT_PUBLIC_GOOGLE_MAPS_API_KEY para habilitar el selector de mapa.
-=======
-        <div className="rounded-3xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-          El mapa no esta disponible en este entorno.
->>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
         </div>
         <p className="text-xs text-zinc-600 dark:text-zinc-300">Ubicacion actual: {locationLabel}</p>
       </div>
@@ -283,11 +269,7 @@ export const LocationPickerMap = ({
 
   return (
     <div className={rootClassName}>
-<<<<<<< HEAD
-      <div className="h-56 overflow-hidden rounded-2xl border border-zinc-300 dark:border-zinc-700">
-=======
-      <div className="h-72 overflow-hidden rounded-3xl border border-slate-300 shadow-[0_14px_32px_rgba(15,23,42,0.12)]">
->>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
+      <div className="h-72 overflow-hidden rounded-3xl border border-zinc-300 shadow-[0_14px_32px_rgba(15,23,42,0.12)] dark:border-zinc-700">
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
             defaultCenter={NEIVA_DEFAULT_CENTER}
@@ -308,23 +290,20 @@ export const LocationPickerMap = ({
         </APIProvider>
       </div>
 
-<<<<<<< HEAD
-      <p className="text-xs text-zinc-600 dark:text-zinc-300">Seleccion actual: {locationLabel}</p>
-      <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-        Haz clic en el mapa para mover el marcador.
-      </p>
-=======
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-600 dark:text-zinc-300">
         <p>
           {isResolvingAddress
             ? "Buscando direccion..."
             : locationError ?? `Direccion: ${locationLabel}`}
         </p>
-        <p className="font-semibold text-slate-500">
+        <p className="font-semibold text-zinc-500 dark:text-zinc-400">
           {toCoordinateText(markerPosition.lat)}, {toCoordinateText(markerPosition.lng)}
         </p>
       </div>
->>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
+
+      <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+        Haz clic o arrastra el marcador para ajustar la ubicacion.
+      </p>
     </div>
   );
 };

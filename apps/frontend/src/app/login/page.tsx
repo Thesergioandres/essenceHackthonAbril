@@ -25,13 +25,13 @@ const INVALID_CREDENTIALS_MESSAGE =
 
 const resolveSafeNextPath = (value: string | null): string => {
   if (!value) {
-    return "/";
+    return "/dashboard";
   }
 
   const normalized = value.trim();
 
   if (!normalized.startsWith("/") || normalized.startsWith("//")) {
-    return "/";
+    return "/dashboard";
   }
 
   return normalized;

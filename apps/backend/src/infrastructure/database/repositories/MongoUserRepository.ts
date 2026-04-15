@@ -111,7 +111,7 @@ export class MongoUserRepository implements IUserRepository {
     try {
       const users = await UserModel.find({ tenantId }).sort({ name: 1 }).exec();
 
-      return users.map(mapUser);
+      return users.map((document) => mapUser(document));
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Unknown persistence failure";
@@ -133,7 +133,7 @@ export class MongoUserRepository implements IUserRepository {
         .sort({ name: 1 })
         .exec();
 
-      return users.map(mapUser);
+      return users.map((document) => mapUser(document));
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Unknown persistence failure";
