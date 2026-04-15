@@ -57,6 +57,11 @@ export const useDonations = (tenantId: string): UseDonationsState => {
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async (): Promise<void> => {
+    if (!tenantId || tenantId.trim().length === 0) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setIsError(false);
     setError(null);

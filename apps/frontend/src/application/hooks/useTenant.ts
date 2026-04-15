@@ -245,22 +245,25 @@ const persistSession = (state: TenantState): void => {
 };
 
 const resolveInitialState = (): TenantState => {
-  const persisted = readPersistedSession();
+  return createEmptyTenantState();
+};
 
-  if (!persisted) {
-    return createEmptyTenantState();
+const hydrateStore = (): void => {
+  if (!isBrowser()) {
+    return;
   }
 
-  const initialState: TenantState = {
-    hasSession: true,
-    ...persisted
-  };
-
-  persistSession(initialState);
-  return initialState;
+  const persisted = readPersistedSession();
+  if (persisted) {
+    commitState({
+      hasSession: true,
+      ...persisted
+    });
+  }
 };
 
 let tenantState: TenantState = resolveInitialState();
+let isHydrated = false;
 
 const subscribers = new Set<() => void>();
 
@@ -444,10 +447,18 @@ interface UseTenantState {
   setActiveOrganizationLocation: (location: OrganizationLocation) => void;
   bootstrapSession: (input: BootstrapTenantSessionInput) => void;
   clearSession: () => void;
+  isHydrated: boolean;
 }
 
 export const useTenant = (): UseTenantState => {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      isHydrated = true;
+      hydrateStore();
+    }
+  }, []);
 
   const setActiveTenantId = useCallback((tenantId: string): void => {
     setActiveTenantInStore(tenantId);
@@ -512,6 +523,7 @@ export const useTenant = (): UseTenantState => {
     setActiveUserType,
     setActiveOrganizationLocation,
     bootstrapSession,
-    clearSession
+    clearSession,
+    isHydrated
   };
 };

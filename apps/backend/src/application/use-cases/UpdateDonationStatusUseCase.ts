@@ -137,7 +137,9 @@ export class UpdateDonationStatusUseCase {
         (isVolunteerRole(actor.role) || actor.role === "foundation");
 
       if (!canOperateAsVolunteer) {
-        throw new ForbiddenError("Only volunteers can pick up donations.");
+        throw new ForbiddenError(
+          `User ${actor.name} (${actor.id}) is not the assigned volunteer for this donation.`
+        );
       }
 
       const pickupPhoto = normalizePhoto(input.photo);
@@ -174,7 +176,9 @@ export class UpdateDonationStatusUseCase {
       (isVolunteerRole(actor.role) || actor.role === "foundation");
 
     if (!canOperateAsVolunteer) {
-      throw new ForbiddenError("Only the assigned volunteer can deliver this donation.");
+      throw new ForbiddenError(
+        `User ${actor.name} (${actor.id}) is not the assigned volunteer for this delivery.`
+      );
     }
 
     const deliveryPhoto = normalizePhoto(input.photo);

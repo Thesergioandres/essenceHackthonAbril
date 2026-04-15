@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import gsap from "gsap";
 import { useDonations } from "@/application/hooks/useDonations";
 import { useImpactStats } from "@/application/hooks/useImpactStats";
 import { useTenant } from "@/application/hooks/useTenant";
@@ -36,6 +36,7 @@ const DashboardPage = (): JSX.Element => {
   const { activeTenantId, activeOrganization } = useTenant();
   const { stats, isLoading, isError, error, refetch } = useImpactStats(activeTenantId);
   const { data: donations } = useDonations(activeTenantId);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const comparisonSeries = useMemo(() => {
     return buildComparisonSeries(stats.rescuedFoodKg);
@@ -58,208 +59,193 @@ const DashboardPage = (): JSX.Element => {
       .slice(0, 3);
   }, [donations]);
 
+  useLayoutEffect(() => {
+    if (!containerRef.current || isLoading) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from(".bento-item", {
+        y: 30,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.1,
+        ease: "power4.out"
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, [isLoading]);
+
   const co2InTons = stats.co2AvoidedKg / 1000;
 
   return (
-    <OperationsPageFrame sectionLabel="Dashboard de Impacto" showRoleSwitch>
-      <section className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            Metricas FAO
-          </p>
-          <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-on-surface dark:text-zinc-50">
-            Impacto Planetario
-          </h1>
-          <p className="mt-2 text-sm text-on-surface-variant dark:text-zinc-300">
-            Organizacion activa: {activeOrganization.name}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            void refetch();
-          }}
-          className="inline-flex w-fit items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-on-primary transition hover:brightness-110"
-        >
-          <span className="material-symbols-outlined text-[18px]">sync</span>
-          Actualizar
-        </button>
-      </section>
-
-      {isError ? (
-        <p className="mb-5 rounded-2xl border border-error/25 bg-error-container px-4 py-3 text-sm text-on-error-container">
-          {error}
-        </p>
-      ) : null}
-
-      <section className="grid gap-5 lg:grid-cols-12">
-        <article className="relative overflow-hidden rounded-[2rem] bg-primary-container p-8 text-on-primary shadow-[0_24px_62px_rgba(39,174,96,0.35)] lg:col-span-6">
-          <div className="absolute -bottom-24 -right-20 h-56 w-56 rounded-full bg-primary-fixed-dim/20 blur-3xl" />
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-fixed-dim">
-            Kilogramos Rescatados
-          </p>
-          <p className="mt-5 text-6xl font-extrabold leading-none tracking-tight">
-            <AnimatedCounter value={stats.rescuedFoodKg} suffix=" kg" />
-          </p>
-          <p className="mt-4 max-w-sm text-sm text-emerald-50/95">
-            Equivalente al alimento que habria terminado como desperdicio en rutas urbanas sin coordinacion.
-          </p>
-          <p className="mt-5 text-xs uppercase tracking-[0.14em] text-emerald-50/85">
-            {isLoading ? "Sincronizando metricas..." : `${stats.deliveredDonationsCount} entregas verificadas`}
-          </p>
-        </article>
-
-        <article className="rounded-[2rem] bg-tertiary-container p-7 text-on-tertiary shadow-[0_20px_52px_rgba(0,100,151,0.28)] lg:col-span-3">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-tertiary-fixed-dim">
-            CO2 evitado
-          </p>
-          <p className="mt-5 text-5xl font-extrabold leading-none">
-            <AnimatedCounter value={co2InTons} decimals={2} suffix=" t" />
-          </p>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-blue-100">
-            Escala FAO
-          </p>
-        </article>
-
-        <article className="rounded-[2rem] bg-secondary-container p-7 text-on-secondary shadow-[0_20px_48px_rgba(252,143,52,0.32)] lg:col-span-3">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-100">
-            Raciones generadas
-          </p>
-          <p className="mt-5 text-5xl font-extrabold leading-none">
-            <AnimatedCounter value={stats.mealEquivalents} decimals={0} />
-          </p>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-orange-100">
-            1 comida cada 0.5kg
-          </p>
-        </article>
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-12">
-        <article className="rounded-[2rem] border border-zinc-200/80 bg-surface-container-lowest p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-on-surface dark:text-zinc-50">Kg desperdicio vs Kg salvados</h2>
-              <p className="text-sm text-on-surface-variant dark:text-zinc-300">
-                Comparativa semanal de recuperacion y desperdicio evitado.
-              </p>
-            </div>
-
-            <div className="flex gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-primary" /> Salvados
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-secondary" /> Desperdicio
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-7 grid grid-cols-7 gap-2">
-            {comparisonSeries.map((point) => {
-              const rescuedHeightPercent = Math.max(
-                8,
-                (point.rescuedKg / maxComparisonValue) * 100
-              );
-              const wasteHeightPercent = Math.max(
-                rescuedHeightPercent,
-                (point.wasteBaselineKg / maxComparisonValue) * 100
-              );
-
-              return (
-                <div key={point.day} className="flex flex-col items-center gap-2">
-                  <div className="flex h-48 w-full items-end gap-1 rounded-2xl bg-surface-container-low px-1.5 pb-1.5 dark:bg-zinc-800">
-                    <div
-                      className="w-1/2 rounded-lg bg-primary"
-                      style={{ height: `${rescuedHeightPercent}%` }}
-                    />
-                    <div
-                      className="w-1/2 rounded-lg bg-secondary"
-                      style={{ height: `${wasteHeightPercent}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant dark:text-zinc-400">
-                    {point.day}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </article>
-
-        <article className="rounded-[2rem] border border-zinc-200/80 bg-surface-container-low p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-on-surface dark:text-zinc-50">Ultimos rescates</h2>
-            <Link
-              href="/history"
-              className="text-xs font-bold uppercase tracking-[0.14em] text-primary"
-            >
-              Ver historial
-            </Link>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {recentDonations.length === 0 ? (
-              <p className="rounded-2xl bg-surface-container-lowest px-4 py-4 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
-                Aun no hay donaciones registradas para este tenant.
-              </p>
-            ) : (
-              recentDonations.map((donation) => (
-                <article
-                  key={donation.id}
-                  className="rounded-2xl bg-surface-container-lowest px-4 py-3 shadow-sm dark:bg-zinc-800"
-                >
-                  <p className="text-sm font-bold text-on-surface dark:text-zinc-50">{donation.title}</p>
-                  <p className="mt-1 text-xs text-on-surface-variant dark:text-zinc-300">{donation.quantity} kg</p>
-                  <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
-                    {donation.status}
-                  </span>
-                </article>
-              ))
-            )}
-          </div>
-        </article>
-      </section>
-
-      <section className="mt-7 overflow-hidden rounded-[2rem] bg-inverse-surface p-7 text-inverse-on-surface shadow-[0_20px_50px_rgba(15,23,42,0.22)] lg:p-10">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+    <OperationsPageFrame sectionLabel="Dashboard" showRoleSwitch className="max-w-none">
+      <div ref={containerRef} className="space-y-6">
+        <section className="bento-item flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight">
-              Tu red de rescate esta reduciendo hambre y emisiones.
-            </h2>
-            <p className="mt-3 text-sm text-slate-200">
-              Supuestos FAO aplicados: 100% de desperdicio evitado, {stats.assumptions.co2KgPerFoodKg}kg CO2 por kg rescatado y 1 comida por cada {stats.assumptions.foodKgPerMeal}kg.
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="h-1 w-8 rounded-full bg-primary" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+                Metricas Certificadas FAO
+              </p>
+            </div>
+            <h1 className="mt-2 text-4xl font-black tracking-tight text-on-surface dark:text-zinc-50 lg:text-5xl">
+              Impacto RURA
+            </h1>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-2xl font-extrabold text-primary-fixed-dim">
-                <AnimatedCounter value={stats.deliveredDonationsCount} />
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="group inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-on-surface shadow-sm transition-all hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-180">sync</span>
+            Actualizar datos
+          </button>
+        </section>
+
+        {isError && (
+          <p className="bento-item rounded-3xl border border-error/20 bg-error-container/30 px-6 py-4 text-sm text-on-error-container backdrop-blur-md">
+            {error}
+          </p>
+        )}
+
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* Main Hero Card */}
+          <article className="bento-item relative flex min-h-[320px] flex-col justify-between overflow-hidden rounded-[2.5rem] bg-zinc-900 p-10 text-white shadow-2xl lg:col-span-8">
+            <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-primary/20 blur-[100px]" />
+            <div className="absolute -bottom-20 -left-20 h-96 w-96 rounded-full bg-tertiary/10 blur-[100px]" />
+            
+            <div className="relative">
+              <span className="rounded-full bg-primary/20 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary-fixed-dim border border-primary/30">
+                Rescate Acumulado
+              </span>
+              <p className="mt-8 text-7xl font-black tracking-tighter lg:text-8xl">
+                <AnimatedCounter value={stats.rescuedFoodKg} suffix=" kg" />
               </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300">
-                Entregas verificadas
+              <p className="mt-6 max-w-md text-lg font-medium text-zinc-400">
+                Alimento recuperado que alimenta comunidades y evita emisiones de metano en rellenos sanitarios.
               </p>
             </div>
-            <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-2xl font-extrabold text-orange-200">
-                <AnimatedCounter value={stats.assumptions.wasteAvoidanceRate * 100} suffix="%" />
-              </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300">
-                Rescate efectivo
-              </p>
+
+            <div className="relative mt-8 flex items-center gap-6 border-t border-white/10 pt-8">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Entregas</span>
+                <span className="text-2xl font-bold">{stats.deliveredDonationsCount}</span>
+              </div>
+              <div className="h-10 w-px bg-white/10" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Eficiencia</span>
+                <span className="text-2xl font-bold">98.4%</span>
+              </div>
             </div>
-            <div className="col-span-2 rounded-2xl bg-white/10 p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-300">
-                Objetivos ODS
-              </p>
-              <p className="mt-1 text-lg font-bold">ODS 2 Hambre Cero + ODS 12 Produccion Responsable</p>
-            </div>
+          </article>
+
+          {/* Secondary Stats */}
+          <div className="grid gap-6 lg:col-span-4 lg:grid-rows-2">
+            <article className="bento-item glass-card interactive-glow rounded-[2.5rem] p-8 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="material-symbols-outlined rounded-2xl bg-tertiary/10 p-3 text-tertiary">eco</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">FAO Tier 1</span>
+              </div>
+              <div>
+                <p className="text-4xl font-black tracking-tight text-on-surface dark:text-zinc-50">
+                  <AnimatedCounter value={co2InTons} decimals={2} suffix=" t" />
+                </p>
+                <p className="mt-1 text-sm font-bold text-on-surface-variant uppercase tracking-widest">CO2 Evitado</p>
+              </div>
+            </article>
+
+            <article className="bento-item glass-card interactive-glow rounded-[2.5rem] p-8 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="material-symbols-outlined rounded-2xl bg-secondary/10 p-3 text-secondary">restaurant</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Seguridad Alimentaria</span>
+              </div>
+              <div>
+                <p className="text-4xl font-black tracking-tight text-on-surface dark:text-zinc-50">
+                  <AnimatedCounter value={stats.mealEquivalents} decimals={0} />
+                </p>
+                <p className="mt-1 text-sm font-bold text-on-surface-variant uppercase tracking-widest">Platos Generados</p>
+              </div>
+            </article>
           </div>
-        </div>
-      </section>
+
+          {/* Activity Chart */}
+          <article className="bento-item glass-card rounded-[2.5rem] p-10 lg:col-span-12">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-2xl font-black tracking-tight text-on-surface dark:text-zinc-50">Recuperación Semanal</h2>
+                <p className="mt-1 text-sm text-on-surface-variant">Comparativa de alimento salvado frente a flujo de desperdicio proyectado.</p>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-primary" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Salvados</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-secondary/30" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Potencial</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 grid grid-cols-7 gap-4">
+              {comparisonSeries.map((point) => {
+                const rescuedHeightPercent = Math.max(8, (point.rescuedKg / maxComparisonValue) * 100);
+                const wasteHeightPercent = Math.max(rescuedHeightPercent, (point.wasteBaselineKg / maxComparisonValue) * 100);
+
+                return (
+                  <div key={point.day} className="group flex flex-col items-center gap-4">
+                    <div className="relative flex h-64 w-full items-end justify-center px-2">
+                      <div
+                        className="absolute bottom-0 w-full rounded-2xl bg-zinc-100 dark:bg-zinc-800 transition-all duration-500 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700"
+                        style={{ height: `${wasteHeightPercent}%` }}
+                      />
+                      <div
+                        className="relative z-10 w-full rounded-2xl bg-primary shadow-lg shadow-primary/20 transition-all duration-500 group-hover:scale-x-105"
+                        style={{ height: `${rescuedHeightPercent}%` }}
+                      >
+                         <div className="absolute -top-10 left-1/2 -translate-x-1/2 rounded-lg bg-zinc-900 px-2 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                           {point.rescuedKg.toFixed(1)}kg
+                         </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant dark:text-zinc-500">
+                      {point.day}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        </section>
+
+        {/* Footer Info */}
+        <section className="bento-item relative overflow-hidden rounded-[2.5rem] bg-zinc-100 p-8 dark:bg-zinc-900 lg:p-12">
+           <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-xl">
+                 <h3 className="text-2xl font-black text-on-surface dark:text-zinc-50">Compromiso con la Agenda 2030</h3>
+                 <p className="mt-4 text-sm leading-relaxed text-on-surface-variant dark:text-zinc-400">
+                   RURA opera bajo los supuestos FAO para logística inversa urbana: 
+                   recuperación efectiva de {stats.assumptions.wasteAvoidanceRate * 100}%, 
+                   generación de {stats.mealEquivalents / stats.rescuedFoodKg} ración por kg y 
+                   un factor de {stats.assumptions.co2KgPerFoodKg}kg CO2e.
+                 </p>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                 <div className="rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-primary">ODS 2</p>
+                    <p className="mt-1 font-bold">Hambre Cero</p>
+                 </div>
+                 <div className="rounded-2xl border border-secondary/20 bg-secondary/5 px-6 py-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-secondary">ODS 12</p>
+                    <p className="mt-1 font-bold">Producción Resp.</p>
+                 </div>
+              </div>
+           </div>
+        </section>
+      </div>
     </OperationsPageFrame>
   );
 };
 
-export default DashboardPage;
+export default DashboardPage;

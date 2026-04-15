@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { Express, Request, RequestHandler, Response } from "express";
+import { AdminController } from "./http/controllers/AdminController";
 import { AuthController } from "./http/controllers/AuthController";
 import { DonationController } from "./http/controllers/DonationController";
 import { HealthController } from "./http/controllers/HealthController";
@@ -11,6 +12,7 @@ import { UrgentNeedController } from "./http/controllers/UrgentNeedController";
 import { UserController } from "./http/controllers/UserController";
 import { errorHandlerMiddleware } from "./http/middlewares/errorHandlerMiddleware";
 import { createDonationRoutes } from "./http/routes/donationRoutes";
+import { createAdminRoutes } from "./http/routes/adminRoutes";
 import { createAuthRoutes } from "./http/routes/authRoutes";
 import { createHealthRoutes } from "./http/routes/healthRoutes";
 import { createHistoryRoutes } from "./http/routes/historyRoutes";
@@ -31,6 +33,7 @@ interface CreateAppDependencies {
   historyController: HistoryController;
   impactController: ImpactController;
   userController: UserController;
+  adminController: AdminController;
   tenantAuthMiddleware: RequestHandler;
 }
 
@@ -44,20 +47,43 @@ export const createApp = ({
   historyController,
   impactController,
   userController,
+  adminController,
   tenantAuthMiddleware
 }: CreateAppDependencies): Express => {
   const app = express();
   const allowedOrigins = new Set(env.corsAllowedOrigins);
   const corsOptions: cors.CorsOptions = {
-    credentials: true,
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
         callback(null, true);
         return;
       }
 
-      callback(new Error("Origin not allowed by CORS"));
-    }
+      if (allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // If we are in development, allow localhost/127.0.0.1 even if not explicitly in env
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "content-type",
+      "authorization",
+      "x-tenant-id",
+      "x-user-id",
+      "x-user-type",
+      "x-user-role"
+    ],
+    maxAge: 86400
   };
 
   app.use(cors(corsOptions));
@@ -79,6 +105,7 @@ export const createApp = ({
   app.use("/api", createNotificationRoutes(notificationController, tenantAuthMiddleware));
   app.use("/api", createHistoryRoutes(historyController, tenantAuthMiddleware));
   app.use("/api", createImpactRoutes(impactController, tenantAuthMiddleware));
+  app.use("/api", createAdminRoutes(adminController));
 
   app.use(errorHandlerMiddleware);
 

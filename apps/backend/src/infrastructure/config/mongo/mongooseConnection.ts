@@ -71,23 +71,30 @@ export const connectMongoDb = async (uri: string): Promise<void> => {
   activeUri = uri.trim();
   registerConnectionListeners();
 
-  let attempt = 1;
+  const MAX_ATTEMPTS = 5;
 
-  while (mongoose.connection.readyState !== CONNECTED_READY_STATE) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
+      if (mongoose.connection.readyState === CONNECTED_READY_STATE) {
+        return;
+      }
       await connect();
       return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
       const retryDelay = computeRetryDelay(attempt);
 
+      if (attempt === MAX_ATTEMPTS) {
+        console.error(`MongoDB final connection attempt failed: ${message}. Giving up.`);
+        throw new Error(`Could not establish initial MongoDB connection after ${MAX_ATTEMPTS} attempts.`);
+      }
+
       console.error(
-        `MongoDB initial connection failed: ${message}. Retrying in ${Math.round(
+        `MongoDB connection attempt ${attempt}/${MAX_ATTEMPTS} failed: ${message}. Retrying in ${Math.round(
           retryDelay / 1000
         )}s...`
       );
 
-      attempt += 1;
       await wait(retryDelay);
     }
   }

@@ -6,7 +6,7 @@ const DEFAULT_PORT = 4000;
 const DEFAULT_MONGODB_URI = "mongodb://localhost:27017/rura";
 const DEFAULT_JWT_SECRET = "rura-dev-jwt-secret-change-in-production";
 const DEFAULT_JWT_EXPIRES_IN = "12h";
-const DEFAULT_CORS_ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000";
+const DEFAULT_CORS_ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000,https://frontend-production-af7a.up.railway.app";
 
 const parsePort = (value: string | undefined): number => {
   if (!value) {

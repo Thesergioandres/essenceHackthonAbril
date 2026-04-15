@@ -20,124 +20,127 @@ const DonationsDashboardPage = (): JSX.Element => {
   }, [data]);
 
   return (
-    <OperationsPageFrame sectionLabel="Flujo Donante" showRoleSwitch>
-      <section className="grid gap-5 lg:grid-cols-12">
-        <article className="rounded-[2rem] border border-slate-900/10 bg-surface-container-low p-7 shadow-[0_20px_48px_rgba(15,23,42,0.1)] lg:col-span-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-            Dashboard de Donaciones
-          </p>
-          <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-on-surface">
-            Gestiona tus excedentes en tiempo real
+    <OperationsPageFrame sectionLabel="Donaciones" showRoleSwitch>
+      <section className="grid gap-6 lg:grid-cols-12">
+        <article className="glass-card premium-shadow rounded-[2.5rem] p-8 lg:col-span-8">
+          <div className="flex items-center gap-2">
+            <span className="h-1 w-8 rounded-full bg-primary" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary">
+              Gestor de Excedentes
+            </p>
+          </div>
+          <h1 className="mt-4 text-4xl font-black tracking-tight text-on-surface dark:text-zinc-50 lg:text-5xl">
+            Tu Red Urbana de Rescate
           </h1>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            Tenant activo: {activeOrganization.name}
+          <p className="mt-3 text-sm text-on-surface-variant dark:text-zinc-400">
+            Optimizando la logística inversa para {activeOrganization.name}.
           </p>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap gap-4">
             <Link
               href="/donations/new"
-              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-on-primary shadow-[0_16px_32px_rgba(0,109,55,0.3)] transition hover:brightness-110"
+              className="inline-flex items-center gap-3 rounded-2xl bg-primary px-6 py-4 text-sm font-bold uppercase tracking-[0.14em] text-on-primary shadow-xl shadow-primary/20 transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <span className="material-symbols-outlined text-[20px]">add_circle</span>
-              + Donar alimento
+              <span className="material-symbols-outlined text-[22px]">add_circle</span>
+              Donar ahora
             </Link>
 
             <button
               type="button"
-              onClick={() => {
-                void refetch();
-              }}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-on-surface transition hover:border-primary hover:text-primary"
+              onClick={() => void refetch()}
+              className="inline-flex items-center gap-3 rounded-2xl bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.14em] text-on-surface border border-zinc-200 shadow-sm transition-all hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
             >
-              <span className="material-symbols-outlined text-[20px]">refresh</span>
-              Actualizar
+              <span className="material-symbols-outlined text-[22px]">refresh</span>
+              Sincronizar
             </button>
           </div>
         </article>
 
-        <article className="rounded-[2rem] bg-primary-container p-6 text-on-primary shadow-[0_20px_50px_rgba(39,174,96,0.32)] lg:col-span-4">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-fixed-dim">
-            Estado rapido
+        <article className="relative overflow-hidden rounded-[2.5rem] bg-zinc-900 p-8 text-white shadow-2xl lg:col-span-4 flex flex-col justify-between">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+            Resumen Operativo
           </p>
-          <div className="mt-4 grid gap-3">
-            <div className="rounded-2xl bg-white/15 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-emerald-100">
-                Activas
-              </p>
-              <p className="mt-1 text-3xl font-extrabold">{activeDonations.length}</p>
+          <div className="mt-6 flex flex-col gap-6">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <span className="text-sm font-medium text-zinc-400">Activas</span>
+              <span className="text-3xl font-black">{activeDonations.length}</span>
             </div>
-            <div className="rounded-2xl bg-white/15 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-emerald-100">
-                Entregadas
-              </p>
-              <p className="mt-1 text-3xl font-extrabold">{deliveredDonations.length}</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-zinc-400">Histórico</span>
+              <span className="text-3xl font-black text-primary-fixed-dim">{deliveredDonations.length}</span>
             </div>
           </div>
         </article>
       </section>
 
-      {isError ? (
-        <p className="mt-5 rounded-2xl border border-error/25 bg-error-container px-4 py-3 text-sm text-on-error-container">
+      {isError && (
+        <p className="mt-6 rounded-[2rem] border border-error/20 bg-error-container/30 px-6 py-4 text-sm text-on-error-container backdrop-blur-md">
           {error}
         </p>
-      ) : null}
+      )}
 
-      <section className="mt-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-on-surface">Donaciones activas</h2>
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
-            {isLoading ? "Cargando..." : `${activeDonations.length} operaciones`}
+      <section className="mt-10">
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <h2 className="text-2xl font-black tracking-tight text-on-surface dark:text-zinc-50">Operaciones en curso</h2>
+             <span className="rounded-full bg-zinc-100 px-3 py-1 text-[10px] font-black text-zinc-500 dark:bg-zinc-800">
+               {activeDonations.length} total
+             </span>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+            {isLoading ? "Consultando backend..." : "Estado: En línea"}
           </span>
         </div>
 
         {isLoading ? (
-          <p className="rounded-2xl bg-white/90 px-4 py-5 text-sm text-on-surface-variant shadow-sm">
-            Cargando donaciones...
-          </p>
-        ) : null}
+          <div className="flex h-40 items-center justify-center rounded-[2.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+            <p className="text-sm font-bold text-zinc-400">Cargando portafolio de donaciones...</p>
+          </div>
+        ) : activeDonations.length === 0 ? (
+          <div className="flex h-40 flex-col items-center justify-center rounded-[2.5rem] bg-zinc-50 dark:bg-zinc-900/50">
+            <span className="material-symbols-outlined text-4xl text-zinc-300">inventory_2</span>
+            <p className="mt-2 text-sm font-bold text-zinc-400">No hay operaciones activas en este momento.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {activeDonations.map((donation) => (
+              <article
+                key={donation.id}
+                className="glass-card interactive-glow rounded-[2rem] p-6"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-black text-on-surface dark:text-zinc-50 leading-tight">{donation.title}</h3>
+                    <p className="mt-1 text-sm font-bold text-primary">{donation.quantity} kg disponibles</p>
+                  </div>
 
-        {!isLoading && activeDonations.length === 0 ? (
-          <p className="rounded-2xl bg-white/90 px-4 py-5 text-sm text-on-surface-variant shadow-sm">
-            No hay donaciones activas para este tenant.
-          </p>
-        ) : null}
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {activeDonations.map((donation) => (
-            <article
-              key={donation.id}
-              className="rounded-[1.5rem] border border-slate-900/10 bg-white/95 p-5 shadow-[0_16px_36px_rgba(15,23,42,0.09)]"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-lg font-bold text-on-surface">{donation.title}</p>
-                  <p className="mt-1 text-sm text-on-surface-variant">{donation.quantity} kg estimados</p>
+                  <span className="rounded-full bg-zinc-100 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                    {donation.status}
+                  </span>
                 </div>
 
-                <span className="rounded-full bg-tertiary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-tertiary">
-                  {donation.status}
-                </span>
-              </div>
+                <div className="mt-6 rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-900/40">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    Tiempo para caducidad
+                  </p>
+                  <CountdownTimer expirationDate={donation.expirationDate} />
+                </div>
 
-              <div className="mt-4 rounded-2xl bg-surface-container-low px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
-                  Caducidad
-                </p>
-                <CountdownTimer expirationDate={donation.expirationDate} />
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-xs text-on-surface-variant">ID: {donation.id.slice(0, 8)}</p>
-                <Link
-                  href="/foundation"
-                  className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-primary transition hover:bg-primary hover:text-on-primary"
-                >
-                  Ver red
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
+                <div className="mt-6 flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">ID: {donation.id.slice(0, 8)}</p>
+                  <Link
+                    href={`/logistics/${donation.id}`}
+                    className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary hover:underline"
+                  >
+                    Detalles
+                    <span className="material-symbols-outlined text-[18px]">trending_flat</span>
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </OperationsPageFrame>
   );

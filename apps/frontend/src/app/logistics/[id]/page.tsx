@@ -68,7 +68,7 @@ const LogisticsDetailPage = (): JSX.Element => {
   const params = useParams<{ id: string }>();
   const donationId = params.id;
 
-  const { activeTenantId, activeOrganization } = useTenant();
+  const { activeTenantId, activeOrganization, activeUserId } = useTenant();
   const { data, isLoading, isError, error, updateStatus, refetch } = useDonations(activeTenantId);
 
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
@@ -78,6 +78,11 @@ const LogisticsDetailPage = (): JSX.Element => {
   const donation = useMemo(() => {
     return data.find((item) => item.id === donationId);
   }, [data, donationId]);
+
+  const isAssignedToMe = useMemo(() => {
+    if (!donation) return false;
+    return donation.assignedVolunteerId === activeUserId;
+  }, [donation, activeUserId]);
 
   const assignedAtTimestamp = useMemo(() => {
     if (donation?.assignedAt) {
@@ -231,6 +236,20 @@ const LogisticsDetailPage = (): JSX.Element => {
             ) : null}
           </article>
 
+          {!isAssignedToMe && donation.status !== "delivered" ? (
+            <article className="rounded-[2rem] border border-secondary/30 bg-secondary-container/10 p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <span className="material-symbols-outlined text-secondary">warning</span>
+                <div>
+                  <p className="text-sm font-bold text-on-secondary-container">No eres el voluntario asignado</p>
+                  <p className="mt-1 text-xs text-on-surface-variant">
+                    Solo el usuario asignado ({donation.assignedVolunteerId?.slice(0, 8)}) puede realizar acciones de evidencia para esta ruta.
+                  </p>
+                </div>
+              </div>
+            </article>
+          ) : null}
+
           <article className="rounded-[2rem] border border-slate-900/10 bg-white/95 p-6 shadow-[0_18px_44px_rgba(15,23,42,0.1)]">
             <h3 className="text-2xl font-extrabold text-on-surface">Acciones de evidencia</h3>
             <p className="mt-2 text-sm text-on-surface-variant">
@@ -240,7 +259,7 @@ const LogisticsDetailPage = (): JSX.Element => {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <label
                 className={`cursor-pointer rounded-2xl px-4 py-4 text-sm font-bold uppercase tracking-[0.12em] transition ${
-                  donation.status === "requested"
+                  donation.status === "requested" && isAssignedToMe
                     ? "bg-surface-container-low text-on-surface hover:bg-surface-container-high"
                     : "cursor-not-allowed bg-surface-container-low text-on-surface-variant/60"
                 }`}
@@ -254,7 +273,7 @@ const LogisticsDetailPage = (): JSX.Element => {
                   accept="image/*"
                   capture="environment"
                   className="hidden"
-                  disabled={donation.status !== "requested" || isActionLoading}
+                  disabled={donation.status !== "requested" || !isAssignedToMe || isActionLoading}
                   onChange={(event) => {
                     void handlePhotoStatusUpdate(event, "picked_up");
                   }}
@@ -263,7 +282,7 @@ const LogisticsDetailPage = (): JSX.Element => {
 
               <label
                 className={`cursor-pointer rounded-2xl px-4 py-4 text-sm font-bold uppercase tracking-[0.12em] transition ${
-                  donation.status === "picked_up"
+                  donation.status === "picked_up" && isAssignedToMe
                     ? "bg-primary text-on-primary hover:brightness-110"
                     : "cursor-not-allowed bg-surface-container-low text-on-surface-variant/60"
                 }`}
@@ -277,7 +296,7 @@ const LogisticsDetailPage = (): JSX.Element => {
                   accept="image/*"
                   capture="environment"
                   className="hidden"
-                  disabled={donation.status !== "picked_up" || isActionLoading}
+                  disabled={donation.status !== "picked_up" || !isAssignedToMe || isActionLoading}
                   onChange={(event) => {
                     void handlePhotoStatusUpdate(event, "delivered");
                   }}

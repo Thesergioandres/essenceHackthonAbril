@@ -66,22 +66,6 @@ const normalizeStatus = (status: unknown): DonationStatus => {
   return "available";
 };
 
-const toLegacyStatus = (status: DonationStatus): string => {
-  if (status === "available") {
-    return "pending";
-  }
-
-  if (status === "requested") {
-    return "pending";
-  }
-
-  if (status === "picked_up") {
-    return "in_transit";
-  }
-
-  return status;
-};
-
 const mapDonation = (entity: DonationApiEntity): Donation => {
   return {
     id: entity.id,
@@ -143,35 +127,11 @@ export const updateDonationStatus = async (
       : {})
   };
 
-  try {
-    const response = await httpClient.patch<DonationApiEntity, UpdateDonationStatusPayload>(
-      `/donations/${id}/status`,
-      payload,
-      { tenantId }
-    );
+  const response = await httpClient.patch<DonationApiEntity, UpdateDonationStatusPayload>(
+    `/donations/${id}/status`,
+    payload,
+    { tenantId }
+  );
 
-    return mapDonation(response);
-  } catch (error: unknown) {
-    const fallbackStatus = toLegacyStatus(input.status);
-    const shouldRetryWithLegacyStatus =
-      error instanceof HttpError &&
-      error.status >= 400 &&
-      error.status < 500 &&
-      fallbackStatus !== input.status;
-
-    if (!shouldRetryWithLegacyStatus) {
-      throw error;
-    }
-
-    const fallbackResponse = await httpClient.patch<DonationApiEntity, UpdateDonationStatusPayload>(
-      `/donations/${id}/status`,
-      {
-        ...payload,
-        status: fallbackStatus
-      },
-      { tenantId }
-    );
-
-    return mapDonation(fallbackResponse);
-  }
+  return mapDonation(response);
 };

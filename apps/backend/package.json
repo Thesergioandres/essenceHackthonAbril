@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "db:reset": "tsx src/infrastructure/database/resetDatabase.ts"
+    "db:reset": "tsx src/infrastructure/database/resetDatabase.ts",
+    "db:seed": "tsx src/infrastructure/config/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

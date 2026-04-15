@@ -11,5 +11,10 @@ export const createUrgentNeedRoutes = (
   router.post("/urgent-needs", urgentNeedController.create);
   router.get("/urgent-needs", urgentNeedController.listByTenant);
 
+  // Alias for compatibility with some frontend parts
+  router.use("/urgencies", tenantAuthMiddleware);
+  router.post("/urgencies", urgentNeedController.create);
+  router.get("/urgencies", urgentNeedController.listByTenant);
+
   return router;
 };

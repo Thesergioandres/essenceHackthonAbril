@@ -19,6 +19,7 @@ import { NotificationService } from "./application/services/NotificationService"
 import { createApp } from "./infrastructure/app";
 import { env } from "./infrastructure/config/env";
 import { connectMongoDb } from "./infrastructure/config/mongo/mongooseConnection";
+import { AdminController } from "./infrastructure/http/controllers/AdminController";
 import { AuthController } from "./infrastructure/http/controllers/AuthController";
 import { OrganizationController } from "./infrastructure/http/controllers/OrganizationController";
 import { DonationController } from "./infrastructure/http/controllers/DonationController";
@@ -126,7 +127,7 @@ const bootstrap = async (): Promise<void> => {
     impactCalculatorService
   );
   const impactController = new ImpactController(getImpactStatsUseCase);
-
+  const adminController = new AdminController();
   const tenantAuthMiddleware = createTenantAuthMiddleware(organizationRepository);
 
   const app = createApp({
@@ -139,6 +140,7 @@ const bootstrap = async (): Promise<void> => {
     historyController,
     impactController,
     userController,
+    adminController,
     tenantAuthMiddleware
   });
 
@@ -167,8 +169,8 @@ const bootstrap = async (): Promise<void> => {
     ? runtimePortFromEnv
     : env.port;
 
-  app.listen(runtimePort, () => {
-    console.info(`Server running on port ${runtimePort}`);
+  app.listen(runtimePort, "0.0.0.0", () => {
+    console.info(`Server running on port ${runtimePort} (bound to 0.0.0.0)`);
   });
 };
 
