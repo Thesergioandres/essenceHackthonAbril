@@ -9,7 +9,7 @@ import { login } from "@/infrastructure/network/authApi";
 import { HttpError, setAuthTokenInRuntime } from "@/infrastructure/network/httpClient";
 import { createOrganization } from "@/infrastructure/network/organizationApi";
 import { registerUser } from "@/infrastructure/network/userApi";
-import { LocationPickerMap } from "@/infrastructure/ui/components/LocationPickerMap";
+import { LocationPickerModal } from "@/infrastructure/ui/components/LocationPickerModal";
 import { Toast } from "@/infrastructure/ui/components/Toast";
 
 interface RegisterFormState {
@@ -72,6 +72,7 @@ const RegisterPageContent = (): JSX.Element => {
     useState<boolean>(false);
   const [showInvalidCredentialsToast, setShowInvalidCredentialsToast] =
     useState<boolean>(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
 
   const nextPath = useMemo(() => {
     return resolveSafeNextPath(searchParams.get("next"));
@@ -282,23 +283,46 @@ const RegisterPageContent = (): JSX.Element => {
                     <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                       Ubicacion visual
                     </span>
-                    <LocationPickerMap
-                      className="mt-2"
-                      enableFullscreenOnMapClick
-                      selectedLocation={selectedLocation}
-                      onLocationSelect={(location) => {
-                        setFormState((current) => ({
-                          ...current,
-                          organizationLat: location.lat.toFixed(6),
-                          organizationLng: location.lng.toFixed(6),
-                          organizationAddress:
-                            typeof location.addressString === "string" &&
-                            location.addressString.trim().length > 0
-                              ? location.addressString
-                              : current.organizationAddress
-                        }));
-                      }}
-                    />
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsLocationModalOpen(true);
+                        }}
+                        className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-300 bg-white px-4 py-4 text-left shadow-[0_12px_30px_rgba(15,23,42,0.1)] transition hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_18px_38px_rgba(15,23,42,0.16)] dark:border-zinc-700 dark:bg-zinc-900"
+                      >
+                        <span className="inline-flex items-center gap-3">
+                          <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+                            <span className="material-symbols-outlined text-[22px]">map</span>
+                          </span>
+                          <span>
+                            <span className="block text-sm font-semibold text-on-surface dark:text-zinc-100">
+                              Seleccionar Ubicacion
+                            </span>
+                            <span className="mt-0.5 block text-xs text-on-surface-variant dark:text-zinc-300">
+                              Abre el mapa en pantalla completa para marcar un punto exacto
+                            </span>
+                          </span>
+                        </span>
+                        <span
+                          className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+                            formState.organizationAddress.trim().length > 0
+                              ? "bg-primary/15 text-primary"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                          }`}
+                        >
+                          {formState.organizationAddress.trim().length > 0
+                            ? "Ubicacion lista"
+                            : "Ubicacion pendiente"}
+                        </span>
+                      </button>
+
+                      <p className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200">
+                        {formState.organizationAddress.trim().length > 0
+                          ? `Direccion seleccionada: ${formState.organizationAddress.trim()}`
+                          : "Aun no has confirmado una direccion en el mapa."}
+                      </p>
+                    </div>
                   </label>
 
                   <label className="sm:col-span-2">
@@ -483,6 +507,26 @@ const RegisterPageContent = (): JSX.Element => {
                 </Link>
               </p>
             </form>
+
+            <LocationPickerModal
+              isOpen={isLocationModalOpen}
+              selectedLocation={selectedLocation}
+              onClose={() => {
+                setIsLocationModalOpen(false);
+              }}
+              onConfirm={(location) => {
+                setFormState((current) => ({
+                  ...current,
+                  organizationLat: location.lat.toFixed(6),
+                  organizationLng: location.lng.toFixed(6),
+                  organizationAddress:
+                    typeof location.addressString === "string" &&
+                    location.addressString.trim().length > 0
+                      ? location.addressString.trim()
+                      : `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+                }));
+              }}
+            />
           </section>
         </div>
       </main>
