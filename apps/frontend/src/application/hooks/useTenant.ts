@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { Organization } from "@/domain/models/Organization";
+import { getTenantIdFromRuntime, setTenantIdInRuntime } from "@/infrastructure/network/httpClient";
 
 const organizations: Organization[] = [
   { id: "tenant-demo", name: "Central Kitchen - Downtown", isActive: true },
@@ -9,12 +10,25 @@ const organizations: Organization[] = [
   { id: "tenant-paused", name: "Sunset Community Pantry", isActive: false }
 ];
 
+const DEFAULT_TENANT_ID = organizations.find((organization) => organization.isActive)?.id ?? "tenant-demo";
+
+const resolveInitialTenantId = (): string => {
+  const runtimeTenantId = getTenantIdFromRuntime();
+  const selectedTenant = organizations.find(
+    (organization) => organization.id === runtimeTenantId && organization.isActive
+  );
+
+  const initialTenantId = selectedTenant?.id ?? DEFAULT_TENANT_ID;
+  setTenantIdInRuntime(initialTenantId);
+  return initialTenantId;
+};
+
 interface TenantState {
   activeTenantId: string;
 }
 
 let tenantState: TenantState = {
-  activeTenantId: organizations[0].id
+  activeTenantId: resolveInitialTenantId()
 };
 
 const subscribers = new Set<() => void>();
@@ -39,13 +53,19 @@ const setActiveTenantInStore = (tenantId: string): void => {
     return;
   }
 
+  if (selected.id === tenantState.activeTenantId) {
+    return;
+  }
+
   tenantState = { activeTenantId: selected.id };
+  setTenantIdInRuntime(selected.id);
   emitChange();
 };
 
 interface UseTenantState {
   organizations: Organization[];
   activeTenantId: string;
+  activeOrganization: Organization;
   setActiveTenantId: (tenantId: string) => void;
 }
 
@@ -56,9 +76,16 @@ export const useTenant = (): UseTenantState => {
     setActiveTenantInStore(tenantId);
   }, []);
 
+  const activeOrganization = useMemo(() => {
+    return (
+      organizations.find((organization) => organization.id === snapshot.activeTenantId) ?? organizations[0]
+    );
+  }, [snapshot.activeTenantId]);
+
   return {
     organizations,
     activeTenantId: snapshot.activeTenantId,
+    activeOrganization,
     setActiveTenantId
   };
 };

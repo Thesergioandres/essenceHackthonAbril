@@ -25,7 +25,7 @@ export const SurplusCard = ({ donation }: SurplusCardProps): JSX.Element => {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h4 className="text-lg font-semibold text-ink">{donation.title}</h4>
-          <p className="mt-1 text-sm text-slate-600">{donation.originName}</p>
+          <p className="mt-1 text-sm text-slate-600">Tenant: {donation.tenantId}</p>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone[donation.status]}`}>
           {statusLabel[donation.status]}

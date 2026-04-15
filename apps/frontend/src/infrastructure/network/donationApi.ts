@@ -1,52 +1,58 @@
 import { Donation, DonationStatus } from "@/domain/models/Donation";
-import { httpGet } from "./httpClient";
+import { httpClient } from "./httpClient";
 
-interface BackendDonation {
+interface DonationApiEntity {
   id: string;
   tenantId: string;
-  donorName?: string;
-  originName?: string;
-  foodType?: string;
   title?: string;
-  quantityKg?: number;
+  foodType?: string;
   quantity?: number;
-  status?: DonationStatus;
-  expiresAt?: string;
+  quantityKg?: number;
+  status?: string;
   expirationDate?: string;
+  expiresAt?: string;
 }
 
-const normalizeStatus = (status: unknown, index: number): DonationStatus => {
+export interface CreateDonationPayload {
+  title: string;
+  quantity: number;
+  status: DonationStatus;
+  expirationDate: string;
+}
+
+const normalizeStatus = (status: unknown): DonationStatus => {
   if (status === "pending" || status === "in_transit" || status === "delivered") {
     return status;
   }
 
-  const fallbackOrder: DonationStatus[] = ["pending", "in_transit", "delivered"];
-  return fallbackOrder[index % fallbackOrder.length];
+  return "pending";
 };
 
-const normalizeDonation = (item: BackendDonation, index: number): Donation => {
-  const title = item.title ?? item.foodType ?? "Untitled donation";
-  const quantity = item.quantity ?? item.quantityKg ?? 0;
-  const expirationDate = item.expirationDate ?? item.expiresAt ?? new Date().toISOString();
-  const originName = item.originName ?? item.donorName ?? "Unknown source";
-
+const mapDonation = (entity: DonationApiEntity): Donation => {
   return {
-    id: item.id,
-    tenantId: item.tenantId,
-    title,
-    quantity,
-    status: normalizeStatus(item.status, index),
-    expirationDate,
-    originName
+    id: entity.id,
+    tenantId: entity.tenantId,
+    title: entity.title ?? entity.foodType ?? "Untitled donation",
+    quantity: entity.quantity ?? entity.quantityKg ?? 0,
+    status: normalizeStatus(entity.status),
+    expirationDate: entity.expirationDate ?? entity.expiresAt ?? new Date().toISOString()
   };
 };
 
-export const getTenantDonations = async (tenantId: string): Promise<Donation[]> => {
-  const payload = await httpGet<BackendDonation[]>("/api/donations", tenantId);
-  return payload.map((item, index) => normalizeDonation(item, index));
+export const getTenantDonations = async (tenantId?: string): Promise<Donation[]> => {
+  const response = await httpClient.get<DonationApiEntity[]>("/donations", { tenantId });
+  return response.map((item) => mapDonation(item));
 };
 
-export const getPendingDonations = async (tenantId: string): Promise<Donation[]> => {
-  const donations = await getTenantDonations(tenantId);
-  return donations.filter((donation) => donation.status === "pending");
+export const createDonation = async (
+  payload: CreateDonationPayload,
+  tenantId?: string
+): Promise<Donation> => {
+  const response = await httpClient.post<DonationApiEntity, CreateDonationPayload>(
+    "/donations",
+    payload,
+    { tenantId }
+  );
+
+  return mapDonation(response);
 };

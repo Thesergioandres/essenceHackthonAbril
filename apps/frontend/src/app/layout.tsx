@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
-import { ReactNode } from "react";
-import GlobalAnimationLayout from "@/infrastructure/ui/layouts/GlobalAnimationLayout";
+import type { ReactNode } from "react";
 import "./globals.css";
 
 const displayFont = Space_Grotesk({
@@ -28,9 +27,7 @@ interface RootLayoutProps {
 const RootLayout = ({ children }: RootLayoutProps): JSX.Element => {
   return (
     <html lang="es" className={`${displayFont.variable} ${bodyFont.variable}`}>
-      <body className="bg-surface text-ink antialiased">
-        <GlobalAnimationLayout>{children}</GlobalAnimationLayout>
-      </body>
+      <body className="min-h-screen bg-surface text-ink antialiased">{children}</body>
     </html>
   );
 };

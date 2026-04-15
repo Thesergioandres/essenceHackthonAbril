@@ -7,5 +7,4 @@ export interface Donation {
   quantity: number;
   status: DonationStatus;
   expirationDate: string;
-  originName: string;
 }

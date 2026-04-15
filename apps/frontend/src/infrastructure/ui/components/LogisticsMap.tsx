@@ -7,7 +7,7 @@ export const LogisticsMap = (): JSX.Element => {
         Active Logistics Traces
       </p>
 
-      <div className="relative mt-5 grid grid-cols-4 gap-4">
+      <div className="relative mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="pointer-events-none absolute left-6 right-6 top-4 h-px bg-slate-200" />
 
         {steps.map((step, index) => {
@@ -37,6 +37,7 @@ export const LogisticsMap = (): JSX.Element => {
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-4 py-3">
         <p className="text-sm font-semibold text-ink">Driver: Marcus J.</p>
         <p className="mt-1 text-xs text-slate-500">Estimated arrival: 14:20</p>
+        <p className="mt-2 text-xs text-slate-500">Route: Central Kitchen to North Hub to Community Pantry</p>
       </div>
     </section>
   );

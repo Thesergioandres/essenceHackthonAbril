@@ -2,53 +2,79 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Donation } from "@/domain/models/Donation";
-import { getTenantDonations } from "@/infrastructure/network/donationApi";
+import {
+  createDonation,
+  CreateDonationPayload,
+  getTenantDonations
+} from "@/infrastructure/network/donationApi";
 
 interface UseDonationsState {
-  donations: Donation[];
+  data: Donation[];
   isLoading: boolean;
   isError: boolean;
-  errorMessage: string | null;
-  refresh: () => Promise<void>;
+  error: string | null;
+  refetch: () => Promise<void>;
+  create: (payload: CreateDonationPayload) => Promise<Donation | null>;
 }
 
 export const useDonations = (tenantId: string): UseDonationsState => {
-  const [donations, setDonations] = useState<Donation[]>([]);
+  const [data, setData] = useState<Donation[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isError, setIsError] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async (): Promise<void> => {
+  const refetch = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setIsError(false);
-    setErrorMessage(null);
+    setError(null);
 
     try {
-      const result = await getTenantDonations(tenantId);
-      setDonations(result);
+      const donations = await getTenantDonations(tenantId);
+      setData(donations);
     } catch (requestError: unknown) {
       const message =
         requestError instanceof Error
           ? requestError.message
-          : "Unable to fetch donations list";
+          : "Unable to fetch tenant donations";
 
       setIsError(true);
-      setErrorMessage(message);
-      setDonations([]);
+      setError(message);
+      setData([]);
     } finally {
       setIsLoading(false);
     }
   }, [tenantId]);
 
+  const create = useCallback(
+    async (payload: CreateDonationPayload): Promise<Donation | null> => {
+      try {
+        const created = await createDonation(payload, tenantId);
+        setData((currentData) => [created, ...currentData]);
+        return created;
+      } catch (requestError: unknown) {
+        const message =
+          requestError instanceof Error
+            ? requestError.message
+            : "Unable to create donation";
+
+        setIsError(true);
+        setError(message);
+        return null;
+      }
+    },
+    [tenantId]
+  );
+
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void refetch();
+  }, [tenantId, refetch]);
 
   return {
-    donations,
+    data,
     isLoading,
     isError,
-    errorMessage,
-    refresh
+    error,
+    refetch,
+    create
   };
 };
