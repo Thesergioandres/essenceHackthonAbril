@@ -12,7 +12,8 @@ const mapUser = (document: UserDocument): User => {
     tenantId: document.tenantId,
     name: document.name,
     email: document.email,
-    role: document.role
+    role: document.role,
+    profileType: document.profileType
   };
 };
 
@@ -23,7 +24,8 @@ export class MongoUserRepository implements IUserRepository {
         tenantId: record.tenantId,
         name: record.name,
         email: record.email,
-        role: record.role
+        role: record.role,
+        profileType: record.profileType
       });
 
       return mapUser(user);
@@ -32,6 +34,23 @@ export class MongoUserRepository implements IUserRepository {
         error instanceof Error ? error.message : "Unknown persistence failure";
 
       throw new RepositoryError(`User creation failed: ${message}`);
+    }
+  }
+
+  async findById(userId: string): Promise<User | null> {
+    try {
+      const user = await UserModel.findById(userId).exec();
+
+      if (!user) {
+        return null;
+      }
+
+      return mapUser(user);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unknown persistence failure";
+
+      throw new RepositoryError(`User query by id failed: ${message}`);
     }
   }
 
@@ -62,6 +81,28 @@ export class MongoUserRepository implements IUserRepository {
         error instanceof Error ? error.message : "Unknown persistence failure";
 
       throw new RepositoryError(`User query by tenant failed: ${message}`);
+    }
+  }
+
+  async findByTenantAndRoles(tenantId: string, roles: User["role"][]): Promise<User[]> {
+    try {
+      if (roles.length === 0) {
+        return [];
+      }
+
+      const users = await UserModel.find({
+        tenantId,
+        role: { $in: roles }
+      })
+        .sort({ name: 1 })
+        .exec();
+
+      return users.map(mapUser);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unknown persistence failure";
+
+      throw new RepositoryError(`User query by tenant and roles failed: ${message}`);
     }
   }
 }
