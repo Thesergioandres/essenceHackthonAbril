@@ -10,6 +10,8 @@
     "dev:backend": "npm run dev --workspace @rura/backend",
     "dev:frontend": "npm run dev --workspace @rura/frontend",
     "build": "npm run build --workspace @rura/backend && npm run build --workspace @rura/frontend",
-    "typecheck": "npm run typecheck --workspace @rura/backend && npm run typecheck --workspace @rura/frontend"
+    "typecheck": "npm run typecheck --workspace @rura/backend && npm run typecheck --workspace @rura/frontend",
+    "start:backend": "npm start --workspace @rura/backend",
+    "start:frontend": "npm start --workspace @rura/frontend"
   }
 }

@@ -162,8 +162,13 @@ const bootstrap = async (): Promise<void> => {
     void runDeliveryGuarantee();
   }, DELIVERY_GUARANTEE_POLLING_INTERVAL_MS);
 
-  app.listen(env.port, () => {
-    console.info(`Server running on port ${env.port}`);
+  const runtimePortFromEnv = Number.parseInt(process.env.PORT ?? "", 10);
+  const runtimePort = Number.isFinite(runtimePortFromEnv)
+    ? runtimePortFromEnv
+    : env.port;
+
+  app.listen(runtimePort, () => {
+    console.info(`Server running on port ${runtimePort}`);
   });
 };
 

@@ -54,7 +54,10 @@ export class HttpError extends Error {
 const isBrowser = (): boolean => typeof window !== "undefined";
 
 const getBaseUrl = (): string => {
-  const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  const fromEnv =
+    process.env.NEXT_PUBLIC_API_URL?.trim() ??
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+
   return fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_API_BASE_URL;
 };
 

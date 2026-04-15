@@ -1,19 +1,19 @@
-FROM node:20-alpine AS deps
+FROM node:18-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-FROM node:20-alpine AS build
+FROM deps AS build
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY tsconfig.json ./tsconfig.json
+COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
-FROM node:20-alpine AS runner
+FROM node:18-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-EXPOSE 3001
+EXPOSE 8080
 CMD ["node", "dist/server.js"]

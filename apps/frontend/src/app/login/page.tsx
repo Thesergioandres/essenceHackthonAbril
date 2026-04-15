@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/application/hooks/useTenant";
 import { login } from "@/infrastructure/network/authApi";
@@ -37,7 +37,7 @@ const resolveSafeNextPath = (value: string | null): string => {
   return normalized;
 };
 
-const LoginPage = (): JSX.Element => {
+const LoginPageContent = (): JSX.Element => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { hasSession, bootstrapSession } = useTenant();
@@ -236,6 +236,22 @@ const LoginPage = (): JSX.Element => {
         </div>
       </main>
     </>
+  );
+};
+
+const LoginPage = (): JSX.Element => {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,#CFF6DE_0%,#F5FAF7_45%,#F2F4F7_100%)] px-6 py-12">
+          <p className="rounded-2xl border border-primary/20 bg-white/90 px-5 py-3 text-sm font-semibold text-on-surface shadow-sm">
+            Cargando acceso...
+          </p>
+        </main>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 };
 

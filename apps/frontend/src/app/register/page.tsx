@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/application/hooks/useTenant";
 import type { OrganizationLocation } from "@/domain/models/Organization";
@@ -59,7 +59,7 @@ const parseCoordinateOrFallback = (value: string, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const RegisterPage = (): JSX.Element => {
+const RegisterPageContent = (): JSX.Element => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { hasSession, bootstrapSession } = useTenant();
@@ -487,6 +487,22 @@ const RegisterPage = (): JSX.Element => {
         </div>
       </main>
     </>
+  );
+};
+
+const RegisterPage = (): JSX.Element => {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,#CFF6DE_0%,#F5FAF7_45%,#F2F4F7_100%)] px-6 py-12 dark:bg-[radial-gradient(circle_at_top_right,#0F2A1B_0%,#111827_45%,#09090B_100%)]">
+          <p className="rounded-2xl border border-primary/20 bg-white/90 px-5 py-3 text-sm font-semibold text-on-surface shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50">
+            Cargando registro...
+          </p>
+        </main>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 };
 

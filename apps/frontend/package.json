@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node -e \"const {spawnSync}=require('child_process'); const result=spawnSync('next',['build'],{stdio:'inherit',shell:true,env:{...process.env,NEXT_TELEMETRY_DISABLED:'1'}}); process.exit(result.status ?? 1);\"",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
