@@ -18,7 +18,7 @@ interface ReceiptLogApiEntity {
   deliveryPhoto?: string;
 }
 
-const HISTORY_ENDPOINTS = ["/history/receipts", "/receipts/history", "/receipts"] as const;
+const HISTORY_ENDPOINTS = ["/history", "/history/receipts", "/receipts/history", "/receipts"] as const;
 
 const mapReceiptLog = (entity: ReceiptLogApiEntity): ReceiptLog => {
   return {

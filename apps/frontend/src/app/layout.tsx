@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
 import type { ReactNode } from "react";
+import GlobalAnimationLayout from "@/infrastructure/ui/layouts/GlobalAnimationLayout";
 import "./globals.css";
 
-const displayFont = Space_Grotesk({
+const displayFont = Manrope({
   subsets: ["latin"],
-  weight: ["500", "700"],
+  weight: ["600", "700", "800"],
   variable: "--font-display"
 });
 
-const bodyFont = Plus_Jakarta_Sans({
+const bodyFont = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-body"
@@ -27,7 +28,15 @@ interface RootLayoutProps {
 const RootLayout = ({ children }: RootLayoutProps): JSX.Element => {
   return (
     <html lang="es" className={`${displayFont.variable} ${bodyFont.variable}`}>
-      <body className="min-h-screen bg-surface text-ink antialiased">{children}</body>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1"
+        />
+      </head>
+      <body className="min-h-screen bg-surface text-ink antialiased">
+        <GlobalAnimationLayout>{children}</GlobalAnimationLayout>
+      </body>
     </html>
   );
 };

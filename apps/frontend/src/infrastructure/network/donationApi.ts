@@ -4,6 +4,7 @@ import { HttpError, httpClient } from "./httpClient";
 interface DonationApiEntity {
   id: string;
   tenantId: string;
+  donorId?: string;
   title?: string;
   foodType?: string;
   quantity?: number;
@@ -11,7 +12,10 @@ interface DonationApiEntity {
   status?: string;
   expirationDate?: string;
   expiresAt?: string;
-  requestedByUserId?: string;
+  requestedByTenantId?: string;
+  assignedVolunteerId?: string;
+  assignedAt?: string;
+  reassignmentCount?: number;
   urgentNeedId?: string;
   donorPhoto?: string;
   pickupPhoto?: string;
@@ -19,6 +23,7 @@ interface DonationApiEntity {
 }
 
 export interface CreateDonationPayload {
+  donorId: string;
   title: string;
   quantity: number;
   status?: DonationStatus;
@@ -31,13 +36,13 @@ interface UpdateDonationStatusPayload {
   status: string;
   photo?: string;
   photoBase64?: string;
-  requestedByUserId?: string;
+  assignedVolunteerId?: string;
 }
 
 export interface UpdateDonationStatusInput {
   status: DonationStatus;
   photoBase64?: string;
-  requestedByUserId?: string;
+  assignedVolunteerId?: string;
 }
 
 const normalizeStatus = (status: unknown): DonationStatus => {
@@ -81,11 +86,15 @@ const mapDonation = (entity: DonationApiEntity): Donation => {
   return {
     id: entity.id,
     tenantId: entity.tenantId,
+    donorId: entity.donorId,
     title: entity.title ?? entity.foodType ?? "Untitled donation",
     quantity: entity.quantity ?? entity.quantityKg ?? 0,
     status: normalizeStatus(entity.status),
     expirationDate: entity.expirationDate ?? entity.expiresAt ?? new Date().toISOString(),
-    requestedByUserId: entity.requestedByUserId,
+    requestedByTenantId: entity.requestedByTenantId,
+    assignedVolunteerId: entity.assignedVolunteerId,
+    assignedAt: entity.assignedAt,
+    reassignmentCount: entity.reassignmentCount,
     urgentNeedId: entity.urgentNeedId,
     donorPhoto: entity.donorPhoto,
     pickupPhoto: entity.pickupPhoto,
@@ -129,7 +138,9 @@ export const updateDonationStatus = async (
           photoBase64: input.photoBase64
         }
       : {}),
-    ...(input.requestedByUserId ? { requestedByUserId: input.requestedByUserId } : {})
+    ...(input.assignedVolunteerId
+      ? { assignedVolunteerId: input.assignedVolunteerId }
+      : {})
   };
 
   try {

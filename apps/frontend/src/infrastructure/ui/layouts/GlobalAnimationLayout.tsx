@@ -1,10 +1,12 @@
 "use client";
 
 import { PropsWithChildren, useLayoutEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import gsap from "gsap";
 
 const GlobalAnimationLayout = ({ children }: PropsWithChildren): JSX.Element => {
   const scopeRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname();
 
   useLayoutEffect(() => {
     if (!scopeRef.current) {
@@ -35,7 +37,7 @@ const GlobalAnimationLayout = ({ children }: PropsWithChildren): JSX.Element => 
     return () => {
       context.revert();
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <div ref={scopeRef} className="min-h-screen" data-rura-shell>

@@ -1,28 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import gsap from "gsap";
-import { ReceiptLog } from "@/domain/models/ReceiptLog";
+import { useMemo, useState } from "react";
 import { useTenant } from "@/application/hooks/useTenant";
+import { ReceiptLog } from "@/domain/models/ReceiptLog";
 import { getReceiptHistory } from "@/infrastructure/network/historyApi";
-import { NotificationBell } from "@/infrastructure/ui/components/NotificationBell";
+import { OperationsPageFrame } from "@/infrastructure/ui/layouts/OperationsPageFrame";
+import { useEffect } from "react";
 
 const HistoryPage = (): JSX.Element => {
-  const rootRef = useRef<HTMLElement | null>(null);
-  const { activeTenantId, activeOrganization, activeUserType } = useTenant();
+  const { activeTenantId, activeOrganization } = useTenant();
   const [logs, setLogs] = useState<ReceiptLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  const isFoundationView = activeUserType === "foundation";
-
-  const totalReceivedKg = useMemo(() => {
-    return logs.reduce((acc, log) => acc + log.quantityKg, 0);
-  }, [logs]);
+  const [search, setSearch] = useState<string>("");
 
   useEffect(() => {
-    const fetchHistory = async (): Promise<void> => {
+    const fetchLogs = async (): Promise<void> => {
       setIsLoading(true);
       setError(null);
 
@@ -30,148 +23,133 @@ const HistoryPage = (): JSX.Element => {
         const receiptLogs = await getReceiptHistory(activeTenantId);
         setLogs(receiptLogs);
       } catch (requestError: unknown) {
-        const message =
-          requestError instanceof Error
-            ? requestError.message
-            : "Unable to fetch receipt history";
-
-        setError(message);
+        const message = requestError instanceof Error ? requestError.message : "No se pudo cargar historial";
         setLogs([]);
+        setError(message);
       } finally {
         setIsLoading(false);
       }
     };
 
-    void fetchHistory();
+    void fetchLogs();
   }, [activeTenantId]);
 
-  useLayoutEffect(() => {
-    if (!rootRef.current) {
-      return;
+  const filteredLogs = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    if (normalizedSearch.length === 0) {
+      return logs;
     }
 
-    const context = gsap.context(() => {
-      gsap.fromTo(
-        "[data-history-item]",
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.4,
-          stagger: 0.06,
-          ease: "power3.out"
-        }
-      );
-    }, rootRef);
+    return logs.filter((log) => {
+      const haystack = `${log.donationTitle} ${log.receivedBy}`.toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
+  }, [logs, search]);
 
-    return () => {
-      context.revert();
-    };
-  }, [logs.length]);
-
-  if (!isFoundationView) {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center px-6 py-10 text-center">
-        <p className="font-display text-xs uppercase tracking-[0.24em] text-slate-500">Acceso restringido</p>
-        <h1 className="mt-3 text-3xl font-semibold text-ink">Solo fundaciones</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Cambia el perfil operativo a Fundacion para ver el historial de recepcion.
-        </p>
-        <Link
-          href="/logistics"
-          className="mt-6 rounded-full border border-accent/30 bg-accent px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent/90"
-        >
-          Volver a Logistica
-        </Link>
-      </main>
-    );
-  }
+  const totalReceivedKg = useMemo(() => {
+    return filteredLogs.reduce((accumulator, log) => accumulator + log.quantityKg, 0);
+  }, [filteredLogs]);
 
   return (
-    <main ref={rootRef} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4 rounded-3xl border border-slate-900/10 bg-white/80 p-6 shadow-[0_18px_44px_rgba(15,23,42,0.1)]">
-        <div>
-          <p className="font-display text-xs uppercase tracking-[0.24em] text-slate-500">Historial de recepcion</p>
-          <h1 className="mt-2 text-3xl font-semibold text-ink">Alimentos recibidos</h1>
-          <p className="mt-2 text-sm text-slate-600">Organizacion: {activeOrganization.name}</p>
-        </div>
+    <OperationsPageFrame sectionLabel="Historial auditable" showRoleSwitch>
+      <section className="mb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Recepcion verificada</p>
+        <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-on-surface">
+          Historial de recepcion
+        </h1>
+        <p className="mt-2 text-sm text-on-surface-variant">Tenant activo: {activeOrganization.name}</p>
+      </section>
 
-        <div className="flex items-center gap-3">
-          <NotificationBell />
-          <Link
-            href="/logistics"
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent"
-          >
-            Ir a Logistica
-          </Link>
-        </div>
-      </header>
+      <section className="mb-6 grid gap-4 md:grid-cols-3">
+        <article className="rounded-2xl bg-surface-container-low p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Total recibido</p>
+          <p className="mt-2 text-4xl font-extrabold text-on-surface">{totalReceivedKg.toFixed(1)} kg</p>
+        </article>
 
-      <section className="mb-6 rounded-3xl bg-gradient-to-br from-accent to-teal-500 p-6 text-white shadow-[0_24px_56px_rgba(15,118,110,0.35)]">
-        <p className="text-xs uppercase tracking-[0.2em] text-teal-100">Recepcion acumulada</p>
-        <p className="mt-3 text-5xl font-semibold leading-none">{totalReceivedKg} kg</p>
+        <article className="rounded-2xl bg-surface-container-low p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tertiary">Registros</p>
+          <p className="mt-2 text-4xl font-extrabold text-on-surface">{filteredLogs.length}</p>
+        </article>
+
+        <article className="rounded-2xl bg-surface-container-low p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-secondary">Auditoria</p>
+          <p className="mt-2 text-sm font-semibold text-on-surface">Trazabilidad por donacion y receptor.</p>
+        </article>
+      </section>
+
+      <section className="mb-5 rounded-2xl border border-slate-900/10 bg-white/90 p-4 shadow-sm">
+        <label className="block space-y-2">
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+            Buscar por origen o receptor
+          </span>
+          <input
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+            }}
+            placeholder="Panaderia, mercado, receptor..."
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+          />
+        </label>
       </section>
 
       {error ? (
-        <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <p className="mb-4 rounded-2xl border border-error/20 bg-error-container px-4 py-3 text-sm text-on-error-container">
           {error}
         </p>
       ) : null}
 
       {isLoading ? (
-        <p className="rounded-2xl border border-slate-900/10 bg-white px-4 py-6 text-sm text-slate-500">
+        <p className="rounded-2xl bg-white/90 px-4 py-5 text-sm text-on-surface-variant shadow-sm">
           Cargando historial...
         </p>
       ) : null}
 
-      {!isLoading && logs.length === 0 ? (
-        <p className="rounded-2xl border border-slate-900/10 bg-white px-4 py-6 text-sm text-slate-500">
-          No hay registros de recepcion para este tenant.
+      {!isLoading && filteredLogs.length === 0 ? (
+        <p className="rounded-2xl bg-white/90 px-4 py-5 text-sm text-on-surface-variant shadow-sm">
+          No hay registros de recepcion para los filtros aplicados.
         </p>
       ) : null}
 
-      {!isLoading && logs.length > 0 ? (
-        <>
-          <div className="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.08)] md:block">
-            <table className="w-full border-collapse text-left">
-              <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Donacion</th>
-                  <th className="px-4 py-3">Cantidad</th>
-                  <th className="px-4 py-3">Recibido por</th>
-                  <th className="px-4 py-3">Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id} data-history-item className="border-t border-slate-100 text-sm text-slate-700">
-                    <td className="px-4 py-3 font-medium text-ink">{log.donationTitle}</td>
-                    <td className="px-4 py-3">{log.quantityKg} kg</td>
-                    <td className="px-4 py-3">{log.receivedBy}</td>
-                    <td className="px-4 py-3">{new Date(log.deliveredAt).toLocaleString("es-CO")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {!isLoading && filteredLogs.length > 0 ? (
+        <section className="overflow-hidden rounded-[1.75rem] border border-slate-900/10 bg-white/95 shadow-[0_16px_36px_rgba(15,23,42,0.09)]">
+          <div className="hidden grid-cols-12 gap-3 border-b border-slate-100 bg-surface-container-low px-5 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant md:grid">
+            <span className="col-span-4">Origen</span>
+            <span className="col-span-2">Cantidad</span>
+            <span className="col-span-3">Recibido por</span>
+            <span className="col-span-3">Fecha</span>
           </div>
 
-          <div className="space-y-3 md:hidden">
-            {logs.map((log) => (
-              <article
-                key={log.id}
-                data-history-item
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.08)]"
-              >
-                <p className="text-base font-semibold text-ink">{log.donationTitle}</p>
-                <p className="mt-1 text-sm text-slate-600">{log.quantityKg} kg</p>
-                <p className="mt-2 text-xs text-slate-500">Recibido por: {log.receivedBy}</p>
-                <p className="mt-1 text-xs text-slate-500">{new Date(log.deliveredAt).toLocaleString("es-CO")}</p>
+          <div className="divide-y divide-slate-100">
+            {filteredLogs.map((log) => (
+              <article key={log.id} className="px-5 py-4">
+                <div className="grid gap-2 md:grid-cols-12 md:items-center">
+                  <div className="md:col-span-4">
+                    <p className="font-bold text-on-surface">{log.donationTitle}</p>
+                    <p className="text-xs text-on-surface-variant">ID: {log.donationId.slice(0, 8)}</p>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <p className="text-sm font-semibold text-on-surface">{log.quantityKg} kg</p>
+                  </div>
+
+                  <div className="md:col-span-3">
+                    <p className="text-sm text-on-surface">{log.receivedBy}</p>
+                  </div>
+
+                  <div className="md:col-span-3">
+                    <p className="text-xs text-on-surface-variant">
+                      {new Date(log.deliveredAt).toLocaleString("es-CO")}
+                    </p>
+                  </div>
+                </div>
               </article>
             ))}
           </div>
-        </>
+        </section>
       ) : null}
-    </main>
+    </OperationsPageFrame>
   );
 };
 

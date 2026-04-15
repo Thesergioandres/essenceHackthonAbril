@@ -120,7 +120,9 @@ export const useDonations = (tenantId: string): UseDonationsState => {
       const optimisticDonation: Donation = {
         ...currentDonation,
         status: params.status,
-        ...(params.requestedByUserId ? { requestedByUserId: params.requestedByUserId } : {}),
+        ...(params.assignedVolunteerId
+          ? { assignedVolunteerId: params.assignedVolunteerId }
+          : {}),
         ...getPhotoPatchByStatus(params.status, params.photoBase64)
       };
 
@@ -137,7 +139,7 @@ export const useDonations = (tenantId: string): UseDonationsState => {
           {
             status: params.status,
             photoBase64: params.photoBase64,
-            requestedByUserId: params.requestedByUserId
+            assignedVolunteerId: params.assignedVolunteerId
           }
         );
 
