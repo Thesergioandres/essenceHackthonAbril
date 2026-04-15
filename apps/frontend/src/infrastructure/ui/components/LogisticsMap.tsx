@@ -4,6 +4,7 @@ import {
   APIProvider,
   AdvancedMarker,
   Map,
+  Marker,
   Polyline
 } from "@vis.gl/react-google-maps";
 import { useMemo } from "react";
@@ -24,7 +25,7 @@ interface LatLngLiteral {
 }
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? "";
-const GOOGLE_MAPS_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID?.trim() || "DEMO_MAP_ID";
+const GOOGLE_MAPS_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID?.trim() ?? "";
 const GOOGLE_MAPS_MAP_ID_DARK = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID_DARK?.trim() ?? "";
 
 const getSafeCoordinate = (
@@ -107,6 +108,7 @@ export const LogisticsMap = ({
     theme === "dark" && GOOGLE_MAPS_MAP_ID_DARK.length > 0
       ? GOOGLE_MAPS_MAP_ID_DARK
       : GOOGLE_MAPS_MAP_ID;
+  const supportsAdvancedMarker = mapId.length > 0;
 
   if (GOOGLE_MAPS_API_KEY.length === 0) {
     return (
@@ -138,12 +140,21 @@ export const LogisticsMap = ({
             center={mapCenter}
             defaultCenter={mapCenter}
             defaultZoom={13}
-            mapId={mapId}
             gestureHandling="greedy"
             disableDefaultUI
+            {...(supportsAdvancedMarker ? { mapId } : {})}
           >
-            <AdvancedMarker position={originPosition} title="Origen" />
-            <AdvancedMarker position={destinationPosition} title="Destino" />
+            {supportsAdvancedMarker ? (
+              <>
+                <AdvancedMarker position={originPosition} title="Origen" />
+                <AdvancedMarker position={destinationPosition} title="Destino" />
+              </>
+            ) : (
+              <>
+                <Marker position={originPosition} title="Origen" />
+                <Marker position={destinationPosition} title="Destino" />
+              </>
+            )}
             <Polyline
               path={[originPosition, destinationPosition]}
               strokeColor="#006d37"

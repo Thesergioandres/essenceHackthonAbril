@@ -47,7 +47,12 @@ export const createApp = ({
 }: CreateAppDependencies): Express => {
   const app = express();
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+    })
+  );
   app.use(express.json({ limit: "12mb" }));
 
   app.get("/", (_request: Request, response: Response) => {
