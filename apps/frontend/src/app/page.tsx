@@ -1,264 +1,387 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { useDonations } from "@/application/hooks/useDonations";
-import { useImpactStats } from "@/application/hooks/useImpactStats";
-import { useTenant } from "@/application/hooks/useTenant";
+import { useLayoutEffect, useRef } from "react";
+import gsap from "gsap";
 import { AnimatedCounter } from "@/infrastructure/ui/components/AnimatedCounter";
-import { OperationsPageFrame } from "@/infrastructure/ui/layouts/OperationsPageFrame";
 
-interface DailyComparisonPoint {
-  day: string;
-  rescuedKg: number;
-  wasteBaselineKg: number;
+interface ContentCard {
+  title: string;
+  description: string;
+  icon: string;
 }
 
-const DAYS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
+interface ImpactStat {
+  value: number;
+  decimals: number;
+  suffix: string;
+  heading: string;
+  detail: string;
+}
 
-const buildComparisonSeries = (rescuedFoodKg: number): DailyComparisonPoint[] => {
-  const baselinePerDay = rescuedFoodKg > 0 ? rescuedFoodKg / DAYS.length : 0;
+const PROBLEM_CARDS: ContentCard[] = [
+  {
+    title: "Desperdicio masivo",
+    description:
+      "Toneladas de alimento apto se pierden diariamente en la ciudad por falta de trazabilidad operativa.",
+    icon: "delete"
+  },
+  {
+    title: "Inseguridad alimentaria",
+    description:
+      "Miles de familias y comedores comunitarios necesitan abastecimiento continuo para mantener sus raciones.",
+    icon: "sentiment_stressed"
+  },
+  {
+    title: "Falta de transporte especializado",
+    description:
+      "Sin red de voluntarios y rutas optimizadas, la ayuda llega tarde o no llega a quienes mas la necesitan.",
+    icon: "local_shipping"
+  }
+];
 
-  return DAYS.map((day, index) => {
-    const modulation = 0.72 + ((index * 19) % 35) / 100;
-    const rescuedKg = Math.max(4, baselinePerDay * modulation);
-    const wasteBaselineKg = rescuedKg * 1.25;
+const FLOW_STEPS: ContentCard[] = [
+  {
+    title: "1. Donacion (Fotos/IA)",
+    description:
+      "Los donantes publican excedentes con evidencia visual para validar estado, volumen y urgencia.",
+    icon: "add_a_photo"
+  },
+  {
+    title: "2. Solicitud (Fundaciones)",
+    description:
+      "Fundaciones y comedores activan necesidades reales segun demanda, ubicacion y capacidad de recepcion.",
+    icon: "volunteer_activism"
+  },
+  {
+    title: "3. Rescate (Voluntarios Offline)",
+    description:
+      "Voluntarios coordinan rutas en campo incluso con conectividad intermitente para no frenar la operacion.",
+    icon: "signal_wifi_off"
+  },
+  {
+    title: "4. Impacto (FAO Metrics)",
+    description:
+      "RURA transforma cada entrega en indicadores auditables: kg recuperados, CO2 evitado y raciones servidas.",
+    icon: "monitoring"
+  }
+];
 
-    return {
-      day,
-      rescuedKg,
-      wasteBaselineKg
-    };
-  });
-};
+const ROLE_CARDS: ContentCard[] = [
+  {
+    title: "Donantes",
+    description:
+      "Empresas, restaurantes y productores que convierten excedentes en oportunidades de alimentacion digna.",
+    icon: "storefront"
+  },
+  {
+    title: "Voluntarios",
+    description:
+      "Equipos de rescate logistico que conectan punto de origen y destino con trazabilidad en tiempo real.",
+    icon: "handshake"
+  },
+  {
+    title: "Fundaciones",
+    description:
+      "Organizaciones que priorizan solicitudes, distribuyen raciones y cierran el circulo de impacto social.",
+    icon: "groups"
+  }
+];
+
+const LIVE_STATS: ImpactStat[] = [
+  {
+    value: 500,
+    decimals: 0,
+    suffix: "kg",
+    heading: "Rescatados",
+    detail: "500kg Rescatados"
+  },
+  {
+    value: 1.2,
+    decimals: 1,
+    suffix: " Tons",
+    heading: "CO2 Evitadas",
+    detail: "1.2 Tons CO2 Evitadas"
+  },
+  {
+    value: 2000,
+    decimals: 0,
+    suffix: "",
+    heading: "Raciones Entregadas",
+    detail: "2000 Raciones Entregadas"
+  }
+];
 
 const HomePage = (): JSX.Element => {
-  const { activeTenantId, activeOrganization } = useTenant();
-  const { stats, isLoading, isError, error, refetch } = useImpactStats(activeTenantId);
-  const { data: donations } = useDonations(activeTenantId);
+  const pageRef = useRef<HTMLElement | null>(null);
 
-  const comparisonSeries = useMemo(() => {
-    return buildComparisonSeries(stats.rescuedFoodKg);
-  }, [stats.rescuedFoodKg]);
+  useLayoutEffect(() => {
+    if (!pageRef.current) {
+      return;
+    }
 
-  const maxComparisonValue = useMemo(() => {
-    return Math.max(
-      1,
-      ...comparisonSeries.map((item) => Math.max(item.rescuedKg, item.wasteBaselineKg))
-    );
-  }, [comparisonSeries]);
+    const context = gsap.context(() => {
+      const revealTargets = [
+        "[data-rura-hero]",
+        "[data-rura-problem-card]",
+        "[data-rura-step]",
+        "[data-rura-stat]",
+        "[data-rura-role]",
+        "[data-rura-footer-link]"
+      ].join(", ");
 
-  const recentDonations = useMemo(() => {
-    return [...donations]
-      .sort((leftDonation, rightDonation) => {
-        const leftTimestamp = new Date(leftDonation.expirationDate).getTime();
-        const rightTimestamp = new Date(rightDonation.expirationDate).getTime();
-        return rightTimestamp - leftTimestamp;
-      })
-      .slice(0, 3);
-  }, [donations]);
+      gsap.set(revealTargets, { autoAlpha: 0, y: 24 });
 
-  const co2InTons = stats.co2AvoidedKg / 1000;
+      const timeline = gsap.timeline({
+        defaults: { duration: 0.75, ease: "power3.out" }
+      });
+
+      timeline
+        .to("[data-rura-hero]", { autoAlpha: 1, y: 0, stagger: 0.14 })
+        .to("[data-rura-problem-card]", { autoAlpha: 1, y: 0, stagger: 0.12 }, "-=0.35")
+        .to("[data-rura-step]", { autoAlpha: 1, y: 0, stagger: 0.1 }, "-=0.3")
+        .to("[data-rura-stat]", { autoAlpha: 1, y: 0, stagger: 0.1 }, "-=0.25")
+        .to("[data-rura-role]", { autoAlpha: 1, y: 0, stagger: 0.1 }, "-=0.2")
+        .to("[data-rura-footer-link]", { autoAlpha: 1, y: 0, stagger: 0.08 }, "-=0.15");
+    }, pageRef);
+
+    return () => {
+      context.revert();
+    };
+  }, []);
 
   return (
-    <OperationsPageFrame sectionLabel="Dashboard de Impacto" showRoleSwitch>
-      <section className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            Metricas FAO
-          </p>
-          <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-on-surface">
-            Impacto Planetario
-          </h1>
-          <p className="mt-2 text-sm text-on-surface-variant">
-            Organizacion activa: {activeOrganization.name}
-          </p>
-        </div>
+    <main ref={pageRef} className="relative min-h-screen overflow-hidden text-slate-900">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_8%,rgba(5,150,105,0.2)_0%,transparent_34%),radial-gradient(circle_at_88%_14%,rgba(249,115,22,0.18)_0%,transparent_36%),radial-gradient(circle_at_75%_86%,rgba(30,64,175,0.11)_0%,transparent_34%),linear-gradient(160deg,#f9f9f6_0%,#f2f6f4_46%,#fff7ee_100%)]" />
 
-        <button
-          type="button"
-          onClick={() => {
-            void refetch();
-          }}
-          className="inline-flex w-fit items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-on-primary transition hover:brightness-110"
-        >
-          <span className="material-symbols-outlined text-[18px]">sync</span>
-          Actualizar
-        </button>
-      </section>
-
-      {isError ? (
-        <p className="mb-5 rounded-2xl border border-error/25 bg-error-container px-4 py-3 text-sm text-on-error-container">
-          {error}
-        </p>
-      ) : null}
-
-      <section className="grid gap-5 lg:grid-cols-12">
-        <article className="relative overflow-hidden rounded-[2rem] bg-primary-container p-8 text-on-primary shadow-[0_24px_62px_rgba(39,174,96,0.35)] lg:col-span-6">
-          <div className="absolute -bottom-24 -right-20 h-56 w-56 rounded-full bg-primary-fixed-dim/20 blur-3xl" />
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-fixed-dim">
-            Kilogramos Rescatados
-          </p>
-          <p className="mt-5 text-6xl font-extrabold leading-none tracking-tight">
-            <AnimatedCounter value={stats.rescuedFoodKg} suffix=" kg" />
-          </p>
-          <p className="mt-4 max-w-sm text-sm text-emerald-50/95">
-            Equivalente al alimento que habria terminado como desperdicio en rutas urbanas sin coordinacion.
-          </p>
-          <p className="mt-5 text-xs uppercase tracking-[0.14em] text-emerald-50/85">
-            {isLoading ? "Sincronizando metricas..." : `${stats.deliveredDonationsCount} entregas verificadas`}
-          </p>
-        </article>
-
-        <article className="rounded-[2rem] bg-tertiary-container p-7 text-on-tertiary shadow-[0_20px_52px_rgba(0,100,151,0.28)] lg:col-span-3">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-tertiary-fixed-dim">
-            CO2 evitado
-          </p>
-          <p className="mt-5 text-5xl font-extrabold leading-none">
-            <AnimatedCounter value={co2InTons} decimals={2} suffix=" t" />
-          </p>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-blue-100">
-            Escala FAO
-          </p>
-        </article>
-
-        <article className="rounded-[2rem] bg-secondary-container p-7 text-on-secondary shadow-[0_20px_48px_rgba(252,143,52,0.32)] lg:col-span-3">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-100">
-            Raciones generadas
-          </p>
-          <p className="mt-5 text-5xl font-extrabold leading-none">
-            <AnimatedCounter value={stats.mealEquivalents} decimals={0} />
-          </p>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-orange-100">
-            1 comida cada 0.5kg
-          </p>
-        </article>
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-12">
-        <article className="rounded-[2rem] border border-slate-900/10 bg-surface-container-lowest p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] lg:col-span-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-on-surface">Kg desperdicio vs Kg salvados</h2>
-              <p className="text-sm text-on-surface-variant">
-                Comparativa semanal de recuperacion y desperdicio evitado.
-              </p>
-            </div>
-
-            <div className="flex gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-primary" /> Salvados
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-secondary" /> Desperdicio
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-7 grid grid-cols-7 gap-2">
-            {comparisonSeries.map((point) => {
-              const rescuedHeightPercent = Math.max(
-                8,
-                (point.rescuedKg / maxComparisonValue) * 100
-              );
-              const wasteHeightPercent = Math.max(
-                rescuedHeightPercent,
-                (point.wasteBaselineKg / maxComparisonValue) * 100
-              );
-
-              return (
-                <div key={point.day} className="flex flex-col items-center gap-2">
-                  <div className="flex h-48 w-full items-end gap-1 rounded-2xl bg-surface-container-low px-1.5 pb-1.5">
-                    <div
-                      className="w-1/2 rounded-lg bg-primary"
-                      style={{ height: `${rescuedHeightPercent}%` }}
-                    />
-                    <div
-                      className="w-1/2 rounded-lg bg-secondary"
-                      style={{ height: `${wasteHeightPercent}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
-                    {point.day}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </article>
-
-        <article className="rounded-[2rem] border border-slate-900/10 bg-surface-container-low p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] lg:col-span-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-on-surface">Ultimos rescates</h2>
-            <Link
-              href="/history"
-              className="text-xs font-bold uppercase tracking-[0.14em] text-primary"
+      <header className="sticky top-0 z-40 border-b border-white/55 bg-white/55 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <span
+              className="material-symbols-outlined rounded-xl bg-emerald-700/10 p-2 text-emerald-700"
+              style={{ fontVariationSettings: "'FILL' 1" }}
             >
-              Ver historial
+              hub
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700/80">
+                RURA
+              </p>
+              <p className="text-sm font-bold text-slate-900">Red Urbana de Rescate Alimentario</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/register?next=%2Fdashboard"
+            className="rounded-full border border-emerald-700/20 bg-white/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:text-white"
+          >
+            Iniciar Sesion / Registro
+          </Link>
+        </div>
+      </header>
+
+      <section className="mx-auto grid w-full max-w-6xl gap-7 px-4 pb-8 pt-10 sm:px-6 lg:grid-cols-12 lg:items-center lg:gap-10 lg:px-8 lg:pt-14">
+        <div
+          data-rura-hero
+          className="rounded-[2rem] border border-white/60 bg-white/60 p-7 shadow-[0_20px_54px_rgba(15,23,42,0.09)] backdrop-blur-md lg:col-span-7"
+        >
+          <p className="inline-flex rounded-full bg-orange-500/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-500">
+            Logistica social en tiempo real
+          </p>
+          <h1 className="mt-4 text-4xl font-extrabold leading-tight text-slate-950 sm:text-5xl">
+            RURA: Conectando excedentes con esperanza
+          </h1>
+          <p className="mt-4 max-w-2xl text-base text-slate-700 sm:text-lg">
+            La red logistica inteligente que combate el hambre y el desperdicio de alimentos en Neiva.
+          </p>
+
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Link
+              href="/register?next=%2Fdashboard"
+              className="rounded-full bg-emerald-700 px-6 py-3 text-sm font-bold uppercase tracking-[0.13em] text-white shadow-[0_14px_30px_rgba(4,120,87,0.35)] transition hover:-translate-y-0.5 hover:brightness-110"
+            >
+              Comenzar ahora
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-slate-300 bg-white/90 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-orange-500 hover:text-orange-500"
+            >
+              Ver dashboard en vivo
             </Link>
           </div>
+        </div>
 
-          <div className="mt-4 space-y-3">
-            {recentDonations.length === 0 ? (
-              <p className="rounded-2xl bg-surface-container-lowest px-4 py-4 text-sm text-slate-500">
-                Aun no hay donaciones registradas para este tenant.
-              </p>
-            ) : (
-              recentDonations.map((donation) => (
-                <article
-                  key={donation.id}
-                  className="rounded-2xl bg-surface-container-lowest px-4 py-3 shadow-sm"
-                >
-                  <p className="text-sm font-bold text-on-surface">{donation.title}</p>
-                  <p className="mt-1 text-xs text-on-surface-variant">{donation.quantity} kg</p>
-                  <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
-                    {donation.status}
-                  </span>
-                </article>
-              ))
-            )}
-          </div>
-        </article>
-      </section>
+        <div
+          data-rura-hero
+          className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/55 p-6 shadow-[0_20px_54px_rgba(15,23,42,0.09)] backdrop-blur-md lg:col-span-5"
+        >
+          <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-emerald-700/20 blur-2xl" />
+          <div className="absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-orange-500/25 blur-2xl" />
 
-      <section className="mt-7 overflow-hidden rounded-[2rem] bg-inverse-surface p-7 text-inverse-on-surface shadow-[0_20px_50px_rgba(15,23,42,0.22)] lg:p-10">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-          <div>
-            <h2 className="text-3xl font-extrabold tracking-tight">
-              Tu red de rescate esta reduciendo hambre y emisiones.
-            </h2>
-            <p className="mt-3 text-sm text-slate-200">
-              Supuestos FAO aplicados: 100% de desperdicio evitado, {stats.assumptions.co2KgPerFoodKg}kg CO2 por kg rescatado y 1 comida por cada {stats.assumptions.foodKgPerMeal}kg.
-            </p>
-          </div>
+          <p className="text-xs font-bold uppercase tracking-[0.17em] text-emerald-700">Red de rescate</p>
+          <h2 className="mt-2 text-2xl font-extrabold text-slate-900">Logistica social coordinada</h2>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-2xl font-extrabold text-primary-fixed-dim">
-                <AnimatedCounter value={stats.deliveredDonationsCount} />
-              </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300">
-                Entregas verificadas
-              </p>
+          <div className="mt-6 grid gap-3">
+            <div className="flex items-center justify-between rounded-2xl bg-white/70 p-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined rounded-lg bg-emerald-700/10 p-2 text-emerald-700">
+                  warehouse
+                </span>
+                <p className="text-sm font-semibold text-slate-800">Donante publica excedente</p>
+              </div>
+              <span className="text-xs font-bold text-slate-500">10:03</span>
             </div>
-            <div className="rounded-2xl bg-white/10 p-4">
-              <p className="text-2xl font-extrabold text-orange-200">
-                <AnimatedCounter value={stats.assumptions.wasteAvoidanceRate * 100} suffix="%" />
-              </p>
-              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300">
-                Rescate efectivo
-              </p>
+
+            <div className="flex items-center justify-between rounded-2xl bg-white/70 p-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined rounded-lg bg-orange-500/15 p-2 text-orange-500">
+                  route
+                </span>
+                <p className="text-sm font-semibold text-slate-800">Ruta asignada al voluntario</p>
+              </div>
+              <span className="text-xs font-bold text-slate-500">10:18</span>
             </div>
-            <div className="col-span-2 rounded-2xl bg-white/10 p-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-300">
-                Objetivos ODS
-              </p>
-              <p className="mt-1 text-lg font-bold">ODS 2 Hambre Cero + ODS 12 Produccion Responsable</p>
+
+            <div className="flex items-center justify-between rounded-2xl bg-white/70 p-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined rounded-lg bg-emerald-700/10 p-2 text-emerald-700">
+                  favorite
+                </span>
+                <p className="text-sm font-semibold text-slate-800">Fundacion confirma entrega</p>
+              </div>
+              <span className="text-xs font-bold text-slate-500">10:41</span>
             </div>
           </div>
         </div>
       </section>
-    </OperationsPageFrame>
+
+      <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-5">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-500">El porque</p>
+          <h2 className="mt-2 text-3xl font-extrabold text-slate-950">La urgencia en Neiva es real</h2>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {PROBLEM_CARDS.map((card) => (
+            <article
+              key={card.title}
+              data-rura-problem-card
+              className="rounded-3xl border border-white/65 bg-white/65 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-md"
+            >
+              <span className="material-symbols-outlined rounded-xl bg-orange-500/12 p-2 text-orange-500">
+                {card.icon}
+              </span>
+              <h3 className="mt-3 text-xl font-bold text-slate-900">{card.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">{card.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="mision" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-5">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Nuestra solucion</p>
+          <h2 className="mt-2 text-3xl font-extrabold text-slate-950">Como funciona RURA</h2>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {FLOW_STEPS.map((step, index) => (
+            <article
+              key={step.title}
+              data-rura-step
+              className="relative rounded-3xl border border-white/65 bg-white/65 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-md"
+            >
+              <span className="absolute right-4 top-4 rounded-full bg-emerald-700/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+                Paso {index + 1}
+              </span>
+              <span className="material-symbols-outlined rounded-xl bg-emerald-700/12 p-2 text-emerald-700">
+                {step.icon}
+              </span>
+              <h3 className="mt-3 pr-16 text-lg font-bold text-slate-900">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">{step.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-5">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Impacto real</p>
+          <h2 className="mt-2 text-3xl font-extrabold text-slate-950">Live Stats</h2>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {LIVE_STATS.map((stat) => (
+            <article
+              key={stat.detail}
+              data-rura-stat
+              className="rounded-3xl border border-white/65 bg-white/65 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-md"
+            >
+              <p className="text-4xl font-extrabold leading-none text-emerald-700">
+                <AnimatedCounter value={stat.value} decimals={stat.decimals} suffix={stat.suffix} />
+              </p>
+              <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-slate-600">
+                {stat.heading}
+              </p>
+              <p className="mt-2 text-sm text-slate-700">{stat.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-5">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-500">Quienes participan</p>
+          <h2 className="mt-2 text-3xl font-extrabold text-slate-950">Roles de la red</h2>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {ROLE_CARDS.map((role) => (
+            <article
+              key={role.title}
+              data-rura-role
+              className="rounded-3xl border border-white/65 bg-white/65 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-md"
+            >
+              <span className="material-symbols-outlined rounded-xl bg-emerald-700/12 p-2 text-emerald-700">
+                {role.icon}
+              </span>
+              <h3 className="mt-3 text-xl font-bold text-slate-900">{role.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">{role.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <footer className="mt-8 border-t border-white/60 bg-white/60 backdrop-blur-md">
+        <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-8 sm:px-6 md:grid-cols-2 lg:px-8">
+          <div data-rura-footer-link>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Contacto</p>
+            <p className="mt-2 text-sm text-slate-700">Neiva, Huila, Colombia</p>
+            <p className="text-sm text-slate-700">hola@rura.red</p>
+          </div>
+
+          <div data-rura-footer-link className="md:text-right">
+            <div className="flex flex-wrap gap-3 md:justify-end">
+              <a
+                href="#mision"
+                className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 transition hover:border-emerald-700 hover:text-emerald-700"
+              >
+                Mision
+              </a>
+              <Link
+                href="/health"
+                className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 transition hover:border-orange-500 hover:text-orange-500"
+              >
+                Estado
+              </Link>
+            </div>
+            <p className="mt-3 text-sm text-slate-700">
+              Hecho con {"\u2764\uFE0F"} en Neiva para el mundo
+            </p>
+          </div>
+        </div>
+      </footer>
+    </main>
   );
 };
 

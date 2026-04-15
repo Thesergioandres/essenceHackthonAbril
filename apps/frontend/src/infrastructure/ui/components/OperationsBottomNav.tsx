@@ -12,10 +12,10 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    href: "/",
+    href: "/dashboard",
     label: "Impacto",
     icon: "dashboard",
-    matches: (pathname) => pathname === "/"
+    matches: (pathname) => pathname.startsWith("/dashboard")
   },
   {
     href: "/donations",
