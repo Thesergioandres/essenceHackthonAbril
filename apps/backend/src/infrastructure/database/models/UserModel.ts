@@ -18,6 +18,7 @@ export interface UserPersistence {
   role: UserRole;
   profileType: UserProfileType;
   penalties: number;
+  password_hash: string;
 }
 
 const userSchema = new Schema<UserPersistence>(
@@ -54,6 +55,11 @@ const userSchema = new Schema<UserPersistence>(
       required: true,
       default: 0,
       min: 0
+    },
+    password_hash: {
+      type: String,
+      required: true,
+      select: false
     }
   },
   {

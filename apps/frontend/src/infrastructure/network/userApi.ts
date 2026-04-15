@@ -17,6 +17,7 @@ export interface RegisterUserPayload {
   tenantId: string;
   name: string;
   email: string;
+  password: string;
   role: RegisterUserRole;
   profileType: RegisterUserProfileType;
 }

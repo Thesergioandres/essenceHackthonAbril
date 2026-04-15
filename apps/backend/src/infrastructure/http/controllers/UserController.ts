@@ -10,6 +10,7 @@ interface CreateUserRequestBody {
   tenantId?: unknown;
   name?: unknown;
   email?: unknown;
+  password?: unknown;
   role?: unknown;
   profileType?: unknown;
 }
@@ -51,6 +52,10 @@ export class UserController {
       throw new ValidationError("email must be a string.");
     }
 
+    if (typeof body.password !== "string") {
+      throw new ValidationError("password must be a string.");
+    }
+
     if (!USER_ROLES.includes(body.role as UserRole)) {
       throw new ValidationError(
         "role must be one of god, super_admin, foundation, employee, volunteer or donor."
@@ -65,6 +70,7 @@ export class UserController {
       tenantId,
       name: body.name,
       email: body.email,
+      password: body.password,
       role: body.role as UserRole,
       profileType: body.profileType as UserProfileType
     };

@@ -1,3 +1,4 @@
+import { AuthenticateUserUseCase } from "./application/use-cases/AuthenticateUserUseCase";
 import { CreateOrganizationUseCase } from "./application/use-cases/CreateOrganizationUseCase";
 import { CreateDonationUseCase } from "./application/use-cases/CreateDonationUseCase";
 import { CreateUrgentNeedUseCase } from "./application/use-cases/CreateUrgentNeedUseCase";
@@ -9,13 +10,16 @@ import { ListNotificationsUseCase } from "./application/use-cases/ListNotificati
 import { ListReceiptHistoryUseCase } from "./application/use-cases/ListReceiptHistoryUseCase";
 import { ListTenantDonationsUseCase } from "./application/use-cases/ListTenantDonationsUseCase";
 import { ListUrgentNeedsUseCase } from "./application/use-cases/ListUrgentNeedsUseCase";
+import { BcryptPasswordHasher } from "./application/services/BcryptPasswordHasher";
 import { DeliveryGuaranteeService } from "./application/services/DeliveryGuaranteeService";
 import { ImpactCalculatorService } from "./application/services/ImpactCalculatorService";
+import { JwtTokenService } from "./application/services/JwtTokenService";
 import { UpdateDonationStatusUseCase } from "./application/use-cases/UpdateDonationStatusUseCase";
 import { NotificationService } from "./application/services/NotificationService";
 import { createApp } from "./infrastructure/app";
 import { env } from "./infrastructure/config/env";
 import { connectMongoDb } from "./infrastructure/config/mongo/mongooseConnection";
+import { AuthController } from "./infrastructure/http/controllers/AuthController";
 import { OrganizationController } from "./infrastructure/http/controllers/OrganizationController";
 import { DonationController } from "./infrastructure/http/controllers/DonationController";
 import { HealthController } from "./infrastructure/http/controllers/HealthController";
@@ -53,6 +57,8 @@ const bootstrap = async (): Promise<void> => {
   const urgentNeedRepository = new MongoUrgentNeedRepository();
   const notificationRepository = new MongoNotificationRepository();
   const receiptLogRepository = new MongoReceiptLogRepository();
+  const passwordHasher = new BcryptPasswordHasher();
+  const tokenService = new JwtTokenService(env.jwtSecret, env.jwtExpiresIn);
   const notificationService = new NotificationService(notificationRepository);
   const deliveryGuaranteeService = new DeliveryGuaranteeService(
     donationRepository,
@@ -62,8 +68,15 @@ const bootstrap = async (): Promise<void> => {
 
   const createOrganizationUseCase = new CreateOrganizationUseCase(organizationRepository);
   const organizationController = new OrganizationController(createOrganizationUseCase);
-  const createUserUseCase = new CreateUserUseCase(userRepository);
+  const createUserUseCase = new CreateUserUseCase(userRepository, passwordHasher);
   const userController = new UserController(createUserUseCase);
+  const authenticateUserUseCase = new AuthenticateUserUseCase(
+    userRepository,
+    organizationRepository,
+    passwordHasher,
+    tokenService
+  );
+  const authController = new AuthController(authenticateUserUseCase);
 
   const createDonationUseCase = new CreateDonationUseCase(
     donationRepository,
@@ -118,6 +131,7 @@ const bootstrap = async (): Promise<void> => {
 
   const app = createApp({
     healthController,
+    authController,
     organizationController,
     donationController,
     urgentNeedController,
