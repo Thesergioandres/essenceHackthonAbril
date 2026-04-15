@@ -32,12 +32,33 @@ export interface CreateUrgentNeedPayload {
   quantityNeededKg: number;
   neededBefore: string;
   priority: UrgentNeedPriority;
+  description?: string;
   linkedDonationId?: string;
+}
+
+interface CreateUrgentNeedRequestPayload extends CreateUrgentNeedPayload {
+  description: string;
 }
 
 const URGENT_NEED_ENDPOINTS = ["/urgent-needs", "/urgencies"] as const;
 
 const normalizePriority = (priority: unknown): UrgentNeedPriority => {
+  if (priority === "LOW") {
+    return "low";
+  }
+
+  if (priority === "MEDIUM") {
+    return "medium";
+  }
+
+  if (priority === "HIGH") {
+    return "high";
+  }
+
+  if (priority === "CRITICAL") {
+    return "critical";
+  }
+
   if (priority === "low" || priority === "medium" || priority === "high" || priority === "critical") {
     return priority;
   }
@@ -97,12 +118,26 @@ export const createUrgentNeed = async (
   tenantId?: string
 ): Promise<UrgentNeed> => {
   let lastError: unknown;
+  const normalizedDescription =
+    typeof payload.description === "string" && payload.description.trim().length > 0
+      ? payload.description.trim()
+      : [payload.title.trim(), payload.details.trim()]
+          .filter((part) => part.length > 0)
+          .join(" - ");
+
+  const requestPayload: CreateUrgentNeedRequestPayload = {
+    ...payload,
+    description: normalizedDescription
+  };
 
   for (const path of URGENT_NEED_ENDPOINTS) {
     try {
-      const response = await httpClient.post<UrgentNeedApiEntity, CreateUrgentNeedPayload>(
+      const response = await httpClient.post<
+        UrgentNeedApiEntity,
+        CreateUrgentNeedRequestPayload
+      >(
         path,
-        payload,
+        requestPayload,
         { tenantId }
       );
 

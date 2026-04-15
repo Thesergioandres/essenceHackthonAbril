@@ -4,10 +4,10 @@ import {
   CreateUserUseCase
 } from "../../../application/use-cases/CreateUserUseCase";
 import { UserProfileType, UserRole } from "../../../domain/entities/User";
-import { UnauthorizedError } from "../../../domain/errors/UnauthorizedError";
 import { ValidationError } from "../../../domain/errors/ValidationError";
 
 interface CreateUserRequestBody {
+  tenantId?: unknown;
   name?: unknown;
   email?: unknown;
   role?: unknown;
@@ -33,7 +33,7 @@ export class UserController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const tenantId = this.resolveTenantId(request);
+      const tenantId = this.resolveTenantId(request, request.body);
       const input = this.parseInput(request.body, tenantId);
       const user = await this.createUserUseCase.execute(input);
       response.status(201).json(user);
@@ -70,13 +70,24 @@ export class UserController {
     };
   }
 
-  private resolveTenantId(request: Request): string {
-    const tenantId = request.header("x-tenant-id");
+  private resolveTenantId(
+    request: Request,
+    body: CreateUserRequestBody
+  ): string {
+    if (typeof body.tenantId === "string") {
+      const bodyTenantId = body.tenantId.trim();
 
-    if (!tenantId || tenantId.trim().length === 0) {
-      throw new UnauthorizedError("x-tenant-id header is required.");
+      if (bodyTenantId.length > 0) {
+        return bodyTenantId;
+      }
     }
 
-    return tenantId.trim();
+    const headerTenantId = request.header("x-tenant-id");
+
+    if (headerTenantId && headerTenantId.trim().length > 0) {
+      return headerTenantId.trim();
+    }
+
+    throw new ValidationError("tenantId is required in body or x-tenant-id header.");
   }
 }

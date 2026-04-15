@@ -6,6 +6,7 @@ import { NotificationService } from "../services/NotificationService";
 export interface CreateUrgentNeedInput {
   tenantId: string;
   description: string;
+  linkedDonationId?: string;
 }
 
 export class CreateUrgentNeedUseCase {
@@ -17,6 +18,10 @@ export class CreateUrgentNeedUseCase {
   async execute(input: CreateUrgentNeedInput): Promise<UrgentNeed> {
     const tenantId = input.tenantId.trim();
     const description = input.description.trim();
+    const linkedDonationId =
+      typeof input.linkedDonationId === "string"
+        ? input.linkedDonationId.trim()
+        : undefined;
 
     if (tenantId.length === 0) {
       throw new ValidationError("tenantId is required.");
@@ -29,7 +34,8 @@ export class CreateUrgentNeedUseCase {
     const urgentNeed = await this.urgentNeedRepository.create({
       tenantId,
       description,
-      priority: "HIGH"
+      priority: "HIGH",
+      ...(linkedDonationId ? { linkedDonationId } : {})
     });
 
     await this.notificationService.notifyUrgentNeedPublished(

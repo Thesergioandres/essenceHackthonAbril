@@ -17,6 +17,11 @@ interface LogisticsMapProps {
   className?: string;
 }
 
+interface LatLngLiteral {
+  lat: number;
+  lng: number;
+}
+
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? "";
 const GOOGLE_MAPS_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID?.trim() || "DEMO_MAP_ID";
 
@@ -34,8 +39,8 @@ const getSafeCoordinate = (
 };
 
 const getApproxDistanceKm = (
-  origin: google.maps.LatLngLiteral,
-  destination: google.maps.LatLngLiteral
+  origin: LatLngLiteral,
+  destination: LatLngLiteral
 ): number => {
   const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
 
@@ -61,21 +66,21 @@ export const LogisticsMap = ({
   remainingDistanceKm,
   className
 }: LogisticsMapProps): JSX.Element => {
-  const originPosition = useMemo<google.maps.LatLngLiteral>(() => {
+  const originPosition = useMemo<LatLngLiteral>(() => {
     return {
       lat: getSafeCoordinate(origin.lat, 2.9273, -90, 90),
       lng: getSafeCoordinate(origin.lng, -75.2819, -180, 180)
     };
   }, [origin.lat, origin.lng]);
 
-  const destinationPosition = useMemo<google.maps.LatLngLiteral>(() => {
+  const destinationPosition = useMemo<LatLngLiteral>(() => {
     return {
       lat: getSafeCoordinate(destination.lat, 2.9341, -90, 90),
       lng: getSafeCoordinate(destination.lng, -75.2558, -180, 180)
     };
   }, [destination.lat, destination.lng]);
 
-  const mapCenter = useMemo<google.maps.LatLngLiteral>(() => {
+  const mapCenter = useMemo<LatLngLiteral>(() => {
     return {
       lat: (originPosition.lat + destinationPosition.lat) / 2,
       lng: (originPosition.lng + destinationPosition.lng) / 2

@@ -7,6 +7,7 @@ export interface UrgentNeedPersistence {
   tenantId: string;
   description: string;
   priority: UrgentNeedPriority;
+  linkedDonationId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -28,6 +29,11 @@ const urgentNeedSchema = new Schema<UrgentNeedPersistence>(
       type: String,
       enum: URGENT_NEED_PRIORITIES,
       required: true
+    },
+    linkedDonationId: {
+      type: String,
+      required: false,
+      trim: true
     }
   },
   {

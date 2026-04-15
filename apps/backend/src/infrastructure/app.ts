@@ -55,7 +55,7 @@ export const createApp = ({
 
   app.use("/api", createHealthRoutes(healthController));
   app.use("/api", createOrganizationRoutes(organizationController));
-  app.use("/api", createUserRoutes(userController, tenantAuthMiddleware));
+  app.use("/api", createUserRoutes(userController));
   app.use("/api", createDonationRoutes(donationController, tenantAuthMiddleware));
   app.use("/api", createUrgentNeedRoutes(urgentNeedController, tenantAuthMiddleware));
   app.use("/api", createNotificationRoutes(notificationController, tenantAuthMiddleware));

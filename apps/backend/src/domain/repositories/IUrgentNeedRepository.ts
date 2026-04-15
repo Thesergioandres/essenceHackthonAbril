@@ -4,6 +4,7 @@ export interface CreateUrgentNeedRecord {
   tenantId: string;
   description: string;
   priority: UrgentNeedPriority;
+  linkedDonationId?: string;
 }
 
 export interface IUrgentNeedRepository {
