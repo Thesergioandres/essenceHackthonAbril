@@ -2,6 +2,10 @@ import Link from "next/link";
 
 const actions = [
   {
+    href: "/logistics",
+    label: "Open Logistics Dashboard"
+  },
+  {
     href: "/health",
     label: "Open Health Check"
   },

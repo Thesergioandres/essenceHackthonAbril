@@ -2,50 +2,53 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Donation } from "@/domain/models/Donation";
-import { apiGet } from "@/infrastructure/network/httpClient";
+import { getTenantDonations } from "@/infrastructure/network/donationApi";
 
 interface UseDonationsState {
   donations: Donation[];
   isLoading: boolean;
-  error: string | null;
+  isError: boolean;
+  errorMessage: string | null;
   refresh: () => Promise<void>;
 }
 
-export const useDonations = (autoLoad: boolean = false): UseDonationsState => {
+export const useDonations = (tenantId: string): UseDonationsState => {
   const [donations, setDonations] = useState<Donation[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const refresh = useCallback(async (): Promise<void> => {
     setIsLoading(true);
-    setError(null);
+    setIsError(false);
+    setErrorMessage(null);
 
     try {
-      const result = await apiGet<Donation[]>("/api/donations");
+      const result = await getTenantDonations(tenantId);
       setDonations(result);
     } catch (requestError: unknown) {
       const message =
         requestError instanceof Error
           ? requestError.message
-          : "Unable to fetch donations list.";
+          : "Unable to fetch donations list";
 
-      setError(message);
+      setIsError(true);
+      setErrorMessage(message);
       setDonations([]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
-    if (autoLoad) {
-      void refresh();
-    }
-  }, [autoLoad, refresh]);
+    void refresh();
+  }, [refresh]);
 
   return {
     donations,
     isLoading,
-    error,
+    isError,
+    errorMessage,
     refresh
   };
 };
