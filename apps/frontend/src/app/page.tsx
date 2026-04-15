@@ -6,6 +6,10 @@ const actions = [
     label: "Open Logistics Dashboard"
   },
   {
+    href: "/history",
+    label: "Open Receipt History"
+  },
+  {
     href: "/health",
     label: "Open Health Check"
   },

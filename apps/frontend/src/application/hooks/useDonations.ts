@@ -6,8 +6,13 @@ import {
   createDonation,
   CreateDonationPayload,
   getTenantDonations,
+  UpdateDonationStatusInput,
   updateDonationStatus as updateDonationStatusRequest
 } from "@/infrastructure/network/donationApi";
+
+interface UpdateStatusParams extends UpdateDonationStatusInput {
+  donationId: string;
+}
 
 interface UseDonationsState {
   data: Donation[];
@@ -16,26 +21,33 @@ interface UseDonationsState {
   error: string | null;
   refetch: () => Promise<void>;
   create: (payload: CreateDonationPayload) => Promise<Donation | null>;
-  updateStatus: (
-    donationId: string,
-    status: DonationStatus,
-    photoBase64: string
-  ) => Promise<Donation | null>;
+  updateStatus: (params: UpdateStatusParams) => Promise<Donation | null>;
 }
+
+const ALLOWED_TRANSITIONS: Record<DonationStatus, DonationStatus[]> = {
+  available: ["requested"],
+  requested: ["picked_up"],
+  picked_up: ["delivered"],
+  delivered: []
+};
 
 const getPhotoPatchByStatus = (
   status: DonationStatus,
-  photoBase64: string
+  photoBase64?: string
 ): Partial<Pick<Donation, "pickupPhoto" | "deliveryPhoto">> => {
-  if (status === "in_transit") {
+  if (status === "picked_up" && photoBase64) {
     return { pickupPhoto: photoBase64 };
   }
 
-  if (status === "delivered") {
+  if (status === "delivered" && photoBase64) {
     return { deliveryPhoto: photoBase64 };
   }
 
   return {};
+};
+
+const canTransition = (from: DonationStatus, to: DonationStatus): boolean => {
+  return ALLOWED_TRANSITIONS[from].includes(to);
 };
 
 export const useDonations = (tenantId: string): UseDonationsState => {
@@ -87,14 +99,18 @@ export const useDonations = (tenantId: string): UseDonationsState => {
   );
 
   const updateStatus = useCallback(
-    async (
-      donationId: string,
-      status: DonationStatus,
-      photoBase64: string
-    ): Promise<Donation | null> => {
-      const currentDonation = data.find((donation) => donation.id === donationId);
+    async (params: UpdateStatusParams): Promise<Donation | null> => {
+      const currentDonation = data.find((donation) => donation.id === params.donationId);
 
       if (!currentDonation) {
+        return null;
+      }
+
+      if (!canTransition(currentDonation.status, params.status)) {
+        setIsError(true);
+        setError(
+          `Transition ${currentDonation.status} -> ${params.status} is not allowed`
+        );
         return null;
       }
 
@@ -103,26 +119,32 @@ export const useDonations = (tenantId: string): UseDonationsState => {
 
       const optimisticDonation: Donation = {
         ...currentDonation,
-        status,
-        ...getPhotoPatchByStatus(status, photoBase64)
+        status: params.status,
+        ...(params.requestedByUserId ? { requestedByUserId: params.requestedByUserId } : {}),
+        ...getPhotoPatchByStatus(params.status, params.photoBase64)
       };
 
       setData((currentData) =>
         currentData.map((donation) =>
-          donation.id === donationId ? optimisticDonation : donation
+          donation.id === params.donationId ? optimisticDonation : donation
         )
       );
 
       try {
         const updated = await updateDonationStatusRequest(
-          donationId,
+          params.donationId,
           tenantId,
-          status,
-          photoBase64
+          {
+            status: params.status,
+            photoBase64: params.photoBase64,
+            requestedByUserId: params.requestedByUserId
+          }
         );
 
         setData((currentData) =>
-          currentData.map((donation) => (donation.id === donationId ? updated : donation))
+          currentData.map((donation) =>
+            donation.id === params.donationId ? updated : donation
+          )
         );
 
         return updated;
@@ -134,7 +156,7 @@ export const useDonations = (tenantId: string): UseDonationsState => {
 
         setData((currentData) =>
           currentData.map((donation) =>
-            donation.id === donationId ? currentDonation : donation
+            donation.id === params.donationId ? currentDonation : donation
           )
         );
         setIsError(true);

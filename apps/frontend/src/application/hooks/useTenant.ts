@@ -2,7 +2,13 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { Organization, OrganizationLocation } from "@/domain/models/Organization";
-import { getTenantIdFromRuntime, setTenantIdInRuntime } from "@/infrastructure/network/httpClient";
+import { User, UserType } from "@/domain/models/User";
+import {
+  getTenantIdFromRuntime,
+  getUserContextFromRuntime,
+  setTenantIdInRuntime,
+  setUserContextInRuntime
+} from "@/infrastructure/network/httpClient";
 
 const initialOrganizations = [
   {
@@ -39,6 +45,25 @@ const initialOrganizations = [
 
 const DEFAULT_TENANT_ID = initialOrganizations[0].id;
 
+const initialUsers = [
+  {
+    id: "user-foundation-01",
+    tenantIds: ["tenant-demo", "tenant-north", "tenant-east"],
+    name: "Laura Fundacion",
+    email: "laura@rura.org",
+    type: "foundation"
+  },
+  {
+    id: "user-volunteer-01",
+    tenantIds: ["tenant-demo", "tenant-north", "tenant-east"],
+    name: "Carlos Voluntario",
+    email: "carlos@rura.org",
+    type: "volunteer"
+  }
+] satisfies [User, ...User[]];
+
+const DEFAULT_USER_ID = initialUsers[0].id;
+
 const normalizeLocation = (location: OrganizationLocation): OrganizationLocation => {
   const normalized: OrganizationLocation = {
     lat: location.lat,
@@ -65,14 +90,41 @@ const resolveInitialTenantId = (organizations: readonly Organization[]): string 
   return initialTenantId;
 };
 
+const resolveInitialUserId = (users: readonly User[]): string => {
+  const runtimeUserContext = getUserContextFromRuntime();
+
+  const selectedById =
+    typeof runtimeUserContext.userId === "string"
+      ? users.find((user) => user.id === runtimeUserContext.userId)
+      : undefined;
+
+  const selectedByType =
+    typeof runtimeUserContext.userType === "string"
+      ? users.find((user) => user.type === runtimeUserContext.userType)
+      : undefined;
+
+  const selectedUser = selectedById ?? selectedByType ?? users[0];
+
+  setUserContextInRuntime({
+    userId: selectedUser?.id,
+    userType: selectedUser?.type
+  });
+
+  return selectedUser?.id ?? DEFAULT_USER_ID;
+};
+
 interface TenantState {
   activeTenantId: string;
+  activeUserId: string;
   organizations: Organization[];
+  users: User[];
 }
 
 let tenantState: TenantState = {
   activeTenantId: resolveInitialTenantId(initialOrganizations),
-  organizations: [...initialOrganizations]
+  activeUserId: resolveInitialUserId(initialUsers),
+  organizations: [...initialOrganizations],
+  users: [...initialUsers]
 };
 
 const subscribers = new Set<() => void>();
@@ -107,6 +159,40 @@ const setActiveTenantInStore = (tenantId: string): void => {
   };
   setTenantIdInRuntime(selected.id);
   emitChange();
+};
+
+const setActiveUserInStore = (userId: string): void => {
+  const selectedUser = tenantState.users.find((user) => user.id === userId);
+
+  if (!selectedUser) {
+    return;
+  }
+
+  if (selectedUser.id === tenantState.activeUserId) {
+    return;
+  }
+
+  tenantState = {
+    ...tenantState,
+    activeUserId: selectedUser.id
+  };
+
+  setUserContextInRuntime({
+    userId: selectedUser.id,
+    userType: selectedUser.type
+  });
+
+  emitChange();
+};
+
+const setActiveUserTypeInStore = (userType: UserType): void => {
+  const selectedUser = tenantState.users.find((user) => user.type === userType);
+
+  if (!selectedUser) {
+    return;
+  }
+
+  setActiveUserInStore(selectedUser.id);
 };
 
 const setActiveOrganizationLocationInStore = (
@@ -150,9 +236,15 @@ const setActiveOrganizationLocationInStore = (
 
 interface UseTenantState {
   organizations: Organization[];
+  users: User[];
   activeTenantId: string;
+  activeUserId: string;
+  activeUser: User;
+  activeUserType: UserType;
   activeOrganization: Organization;
   setActiveTenantId: (tenantId: string) => void;
+  setActiveUserId: (userId: string) => void;
+  setActiveUserType: (userType: UserType) => void;
   setActiveOrganizationLocation: (location: OrganizationLocation) => void;
 }
 
@@ -161,6 +253,14 @@ export const useTenant = (): UseTenantState => {
 
   const setActiveTenantId = useCallback((tenantId: string): void => {
     setActiveTenantInStore(tenantId);
+  }, []);
+
+  const setActiveUserId = useCallback((userId: string): void => {
+    setActiveUserInStore(userId);
+  }, []);
+
+  const setActiveUserType = useCallback((userType: UserType): void => {
+    setActiveUserTypeInStore(userType);
   }, []);
 
   const setActiveOrganizationLocation = useCallback(
@@ -179,11 +279,23 @@ export const useTenant = (): UseTenantState => {
     );
   }, [snapshot.activeTenantId, snapshot.organizations]);
 
+  const activeUser = useMemo(() => {
+    const fallbackUser = snapshot.users[0] ?? initialUsers[0];
+
+    return snapshot.users.find((user) => user.id === snapshot.activeUserId) ?? fallbackUser;
+  }, [snapshot.activeUserId, snapshot.users]);
+
   return {
     organizations: snapshot.organizations,
+    users: snapshot.users,
     activeTenantId: snapshot.activeTenantId,
+    activeUserId: activeUser.id,
+    activeUser,
+    activeUserType: activeUser.type,
     activeOrganization,
     setActiveTenantId,
+    setActiveUserId,
+    setActiveUserType,
     setActiveOrganizationLocation
   };
 };

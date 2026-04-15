@@ -1,4 +1,4 @@
-export type DonationStatus = "pending" | "in_transit" | "delivered";
+export type DonationStatus = "available" | "requested" | "picked_up" | "delivered";
 
 export interface Donation {
   id: string;
@@ -7,6 +7,8 @@ export interface Donation {
   quantity: number;
   status: DonationStatus;
   expirationDate: string;
+  requestedByUserId?: string;
+  urgentNeedId?: string;
   donorPhoto?: string;
   pickupPhoto?: string;
   deliveryPhoto?: string;

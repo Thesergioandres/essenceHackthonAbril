@@ -1,14 +1,22 @@
 "use client";
 
 import { useMemo } from "react";
+import { UserType } from "@/domain/models/User";
 import { useTenant } from "@/application/hooks/useTenant";
 import { LocationPickerMap } from "@/infrastructure/ui/components/LocationPickerMap";
+
+const DASHBOARD_ROLES: Array<{ value: UserType; label: string }> = [
+  { value: "foundation", label: "Fundacion" },
+  { value: "volunteer", label: "Voluntario" }
+];
 
 export const BusinessSelector = (): JSX.Element => {
   const {
     organizations,
     activeTenantId,
+    activeUserType,
     setActiveTenantId,
+    setActiveUserType,
     activeOrganization,
     setActiveOrganizationLocation
   } = useTenant();
@@ -51,6 +59,32 @@ export const BusinessSelector = (): JSX.Element => {
         <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
           {locationLabel}
         </span>
+      </div>
+
+      <div className="mt-4">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Modo Operativo</p>
+        <div className="mt-2 inline-flex rounded-xl border border-slate-300 bg-slate-100 p-1">
+          {DASHBOARD_ROLES.map((role) => {
+            const isActive = activeUserType === role.value;
+
+            return (
+              <button
+                key={role.value}
+                type="button"
+                onClick={() => {
+                  setActiveUserType(role.value);
+                }}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  isActive
+                    ? "bg-accent text-white shadow-[0_8px_24px_rgba(15,118,110,0.28)]"
+                    : "text-slate-600 hover:text-ink"
+                }`}
+              >
+                {role.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <LocationPickerMap

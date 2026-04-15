@@ -1,6 +1,10 @@
 const DEFAULT_API_BASE_URL = "http://localhost:4000/api/v1";
 const TENANT_STORAGE_KEY = "rura.activeTenantId";
 const TENANT_GLOBAL_KEY = "__RURA_ACTIVE_TENANT_ID__";
+const USER_ID_STORAGE_KEY = "rura.activeUserId";
+const USER_TYPE_STORAGE_KEY = "rura.activeUserType";
+const USER_ID_GLOBAL_KEY = "__RURA_ACTIVE_USER_ID__";
+const USER_TYPE_GLOBAL_KEY = "__RURA_ACTIVE_USER_TYPE__";
 const FALLBACK_TENANT_ID = "tenant-demo";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -10,6 +14,8 @@ type QueryParamValue = string | number | boolean | null | undefined;
 interface RequestOptions<TBody = unknown> {
   method?: HttpMethod;
   tenantId?: string;
+  userId?: string;
+  userType?: string;
   body?: TBody;
   query?: Record<string, QueryParamValue>;
   headers?: Record<string, string>;
@@ -20,7 +26,14 @@ interface RequestOptions<TBody = unknown> {
 declare global {
   interface Window {
     __RURA_ACTIVE_TENANT_ID__?: string;
+    __RURA_ACTIVE_USER_ID__?: string;
+    __RURA_ACTIVE_USER_TYPE__?: string;
   }
+}
+
+interface RuntimeUserContext {
+  userId?: string;
+  userType?: string;
 }
 
 export class HttpError extends Error {
@@ -95,6 +108,39 @@ export const setTenantIdInRuntime = (tenantId: string): void => {
   window.localStorage.setItem(TENANT_STORAGE_KEY, tenantId);
 };
 
+export const getUserContextFromRuntime = (): RuntimeUserContext => {
+  if (!isBrowser()) {
+    return {};
+  }
+
+  const userIdFromWindow = window[USER_ID_GLOBAL_KEY];
+  const userTypeFromWindow = window[USER_TYPE_GLOBAL_KEY];
+
+  const userIdFromStorage = window.localStorage.getItem(USER_ID_STORAGE_KEY) ?? undefined;
+  const userTypeFromStorage = window.localStorage.getItem(USER_TYPE_STORAGE_KEY) ?? undefined;
+
+  return {
+    userId: userIdFromWindow ?? userIdFromStorage,
+    userType: userTypeFromWindow ?? userTypeFromStorage
+  };
+};
+
+export const setUserContextInRuntime = (userContext: RuntimeUserContext): void => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  if (typeof userContext.userId === "string") {
+    window[USER_ID_GLOBAL_KEY] = userContext.userId;
+    window.localStorage.setItem(USER_ID_STORAGE_KEY, userContext.userId);
+  }
+
+  if (typeof userContext.userType === "string") {
+    window[USER_TYPE_GLOBAL_KEY] = userContext.userType;
+    window.localStorage.setItem(USER_TYPE_STORAGE_KEY, userContext.userType);
+  }
+};
+
 const request = async <TResponse, TBody = unknown>(
   path: string,
   options: RequestOptions<TBody> = {}
@@ -102,6 +148,8 @@ const request = async <TResponse, TBody = unknown>(
   const {
     method = "GET",
     tenantId,
+    userId,
+    userType,
     body,
     query,
     headers,
@@ -110,6 +158,9 @@ const request = async <TResponse, TBody = unknown>(
   } = options;
 
   const resolvedTenantId = tenantId ?? getTenantIdFromRuntime();
+  const runtimeUserContext = getUserContextFromRuntime();
+  const resolvedUserId = userId ?? runtimeUserContext.userId;
+  const resolvedUserType = userType ?? runtimeUserContext.userType;
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
   const response = await fetch(buildUrl(path, query), {
@@ -120,6 +171,13 @@ const request = async <TResponse, TBody = unknown>(
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       "x-tenant-id": resolvedTenantId,
+      ...(resolvedUserId ? { "x-user-id": resolvedUserId } : {}),
+      ...(resolvedUserType
+        ? {
+            "x-user-type": resolvedUserType,
+            "x-user-role": resolvedUserType
+          }
+        : {}),
       ...headers
     },
     body: body === undefined ? undefined : isFormData ? (body as BodyInit) : JSON.stringify(body)
