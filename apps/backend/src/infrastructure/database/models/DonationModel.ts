@@ -15,6 +15,8 @@ export interface DonationPersistence {
   quantity: number;
   status: DonationStatus;
   expirationDate: Date;
+  assignedAt: Date;
+  reassignmentCount: number;
   requestedByTenantId?: string;
   assignedVolunteerId?: string;
   donorPhoto?: string;
@@ -54,6 +56,17 @@ const donationSchema = new Schema<DonationPersistence>(
       type: Date,
       required: true
     },
+    assignedAt: {
+      type: Date,
+      required: true,
+      default: Date.now
+    },
+    reassignmentCount: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0
+    },
     requestedByTenantId: {
       type: String,
       required: false,
@@ -85,6 +98,7 @@ const donationSchema = new Schema<DonationPersistence>(
 
 donationSchema.index({ tenantId: 1, status: 1 });
 donationSchema.index({ tenantId: 1, assignedVolunteerId: 1 });
+donationSchema.index({ status: 1, assignedAt: 1 });
 
 export type DonationDocument = HydratedDocument<DonationPersistence>;
 

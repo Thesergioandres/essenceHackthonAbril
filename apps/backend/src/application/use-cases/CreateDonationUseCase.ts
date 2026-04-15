@@ -5,6 +5,7 @@ import { ValidationError } from "../../domain/errors/ValidationError";
 import { IDonationRepository } from "../../domain/repositories/IDonationRepository";
 import { IOrganizationRepository } from "../../domain/repositories/IOrganizationRepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
+import { canCreateDonationsRole } from "../policies/userRolePolicy";
 import { NotificationService } from "../services/NotificationService";
 
 export interface CreateDonationInput {
@@ -75,7 +76,7 @@ export class CreateDonationUseCase {
       throw new NotFoundError("Donor user not found for tenant.");
     }
 
-    if (donor.role !== "donor" && donor.role !== "super_admin" && donor.role !== "god") {
+    if (!canCreateDonationsRole(donor.role)) {
       throw new ForbiddenError("Only donors or foundation admins can create donations.");
     }
 

@@ -3,6 +3,7 @@ import express, { Express, Request, RequestHandler, Response } from "express";
 import { DonationController } from "./http/controllers/DonationController";
 import { HealthController } from "./http/controllers/HealthController";
 import { HistoryController } from "./http/controllers/HistoryController";
+import { ImpactController } from "./http/controllers/ImpactController";
 import { NotificationController } from "./http/controllers/NotificationController";
 import { OrganizationController } from "./http/controllers/OrganizationController";
 import { UrgentNeedController } from "./http/controllers/UrgentNeedController";
@@ -11,6 +12,7 @@ import { errorHandlerMiddleware } from "./http/middlewares/errorHandlerMiddlewar
 import { createDonationRoutes } from "./http/routes/donationRoutes";
 import { createHealthRoutes } from "./http/routes/healthRoutes";
 import { createHistoryRoutes } from "./http/routes/historyRoutes";
+import { createImpactRoutes } from "./http/routes/impactRoutes";
 import { createNotificationRoutes } from "./http/routes/notificationRoutes";
 import { createOrganizationRoutes } from "./http/routes/organizationRoutes";
 import { createUrgentNeedRoutes } from "./http/routes/urgentNeedRoutes";
@@ -23,6 +25,7 @@ interface CreateAppDependencies {
   urgentNeedController: UrgentNeedController;
   notificationController: NotificationController;
   historyController: HistoryController;
+  impactController: ImpactController;
   userController: UserController;
   tenantAuthMiddleware: RequestHandler;
 }
@@ -34,6 +37,7 @@ export const createApp = ({
   urgentNeedController,
   notificationController,
   historyController,
+  impactController,
   userController,
   tenantAuthMiddleware
 }: CreateAppDependencies): Express => {
@@ -56,6 +60,7 @@ export const createApp = ({
   app.use("/api", createUrgentNeedRoutes(urgentNeedController, tenantAuthMiddleware));
   app.use("/api", createNotificationRoutes(notificationController, tenantAuthMiddleware));
   app.use("/api", createHistoryRoutes(historyController, tenantAuthMiddleware));
+  app.use("/api", createImpactRoutes(impactController, tenantAuthMiddleware));
 
   app.use(errorHandlerMiddleware);
 

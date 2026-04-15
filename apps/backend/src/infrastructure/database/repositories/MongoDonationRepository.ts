@@ -4,6 +4,7 @@ import { RepositoryError } from "../../../domain/errors/RepositoryError";
 import {
   CreateDonationRecord,
   IDonationRepository,
+  RecoverOverduePickupRecord,
   UpdateDonationStatusRecord
 } from "../../../domain/repositories/IDonationRepository";
 import { DonationDocument, DonationModel } from "../models/DonationModel";
@@ -17,6 +18,11 @@ const mapDonation = (document: DonationDocument): Donation => {
     quantity: document.quantity,
     status: document.status,
     expirationDate: document.expirationDate,
+    assignedAt: document.assignedAt instanceof Date ? document.assignedAt : new Date(0),
+    reassignmentCount:
+      Number.isFinite(document.reassignmentCount) && document.reassignmentCount >= 0
+        ? document.reassignmentCount
+        : 0,
     ...(typeof document.requestedByTenantId === "string"
       ? { requestedByTenantId: document.requestedByTenantId }
       : {}),
@@ -45,6 +51,8 @@ export class MongoDonationRepository implements IDonationRepository {
         quantity: record.quantity,
         status: record.status,
         expirationDate: record.expirationDate,
+        assignedAt: new Date(),
+        reassignmentCount: 0,
         ...(record.donorPhoto ? { donorPhoto: record.donorPhoto } : {})
       });
 
@@ -92,17 +100,40 @@ export class MongoDonationRepository implements IDonationRepository {
     }
   }
 
+  async findPickedUpOverdue(cutoffDate: Date): Promise<Donation[]> {
+    try {
+      const donations = await DonationModel.find({
+        status: "picked_up",
+        assignedAt: { $lte: cutoffDate },
+        assignedVolunteerId: { $exists: true, $ne: "" }
+      })
+        .sort({ assignedAt: 1 })
+        .exec();
+
+      return donations.map(mapDonation);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unknown persistence failure";
+
+      throw new RepositoryError(`Overdue pickup query failed: ${message}`);
+    }
+  }
+
   async updateStatus(record: UpdateDonationStatusRecord): Promise<Donation | null> {
     try {
       if (!isValidObjectId(record.donationId)) {
         return null;
       }
 
-      const updateSet: Record<string, string> = {
+      const updateSet: Record<string, unknown> = {
         status: record.status
       };
 
       if (record.status === "requested") {
+        if (record.assignedAt instanceof Date) {
+          updateSet.assignedAt = record.assignedAt;
+        }
+
         if (record.requestedByTenantId) {
           updateSet.requestedByTenantId = record.requestedByTenantId;
         }
@@ -114,6 +145,10 @@ export class MongoDonationRepository implements IDonationRepository {
 
       if (record.status === "picked_up" && record.pickupPhoto) {
         updateSet.pickupPhoto = record.pickupPhoto;
+
+        if (record.assignedAt instanceof Date) {
+          updateSet.assignedAt = record.assignedAt;
+        }
       }
 
       if (record.status === "delivered" && record.deliveryPhoto) {
@@ -140,6 +175,46 @@ export class MongoDonationRepository implements IDonationRepository {
         error instanceof Error ? error.message : "Unknown persistence failure";
 
       throw new RepositoryError(`Donation status update failed: ${message}`);
+    }
+  }
+
+  async recoverOverduePickup(record: RecoverOverduePickupRecord): Promise<Donation | null> {
+    try {
+      if (!isValidObjectId(record.donationId)) {
+        return null;
+      }
+
+      const recoveredDonation = await DonationModel.findOneAndUpdate(
+        {
+          _id: record.donationId,
+          tenantId: record.tenantId,
+          status: "picked_up",
+          assignedVolunteerId: record.assignedVolunteerId,
+          assignedAt: { $lte: record.cutoffDate }
+        },
+        {
+          $set: {
+            status: "requested",
+            assignedAt: record.reassignedAt
+          },
+          $unset: {
+            assignedVolunteerId: ""
+          },
+          $inc: {
+            reassignmentCount: 1
+          }
+        },
+        {
+          new: true
+        }
+      ).exec();
+
+      return recoveredDonation ? mapDonation(recoveredDonation) : null;
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unknown persistence failure";
+
+      throw new RepositoryError(`Overdue pickup recovery failed: ${message}`);
     }
   }
 }

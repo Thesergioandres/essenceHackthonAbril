@@ -14,4 +14,5 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;
   findByTenantId(tenantId: string): Promise<User[]>;
   findByTenantAndRoles(tenantId: string, roles: UserRole[]): Promise<User[]>;
+  incrementPenalties(userId: string, amount: number): Promise<User | null>;
 }

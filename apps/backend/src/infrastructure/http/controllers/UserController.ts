@@ -14,7 +14,14 @@ interface CreateUserRequestBody {
   profileType?: unknown;
 }
 
-const USER_ROLES: UserRole[] = ["god", "super_admin", "employee", "donor"];
+const USER_ROLES: UserRole[] = [
+  "god",
+  "super_admin",
+  "foundation",
+  "employee",
+  "volunteer",
+  "donor"
+];
 const USER_PROFILE_TYPES: UserProfileType[] = ["organization", "natural_person"];
 
 export class UserController {
@@ -45,7 +52,9 @@ export class UserController {
     }
 
     if (!USER_ROLES.includes(body.role as UserRole)) {
-      throw new ValidationError("role must be one of god, super_admin, employee or donor.");
+      throw new ValidationError(
+        "role must be one of god, super_admin, foundation, employee, volunteer or donor."
+      );
     }
 
     if (!USER_PROFILE_TYPES.includes(body.profileType as UserProfileType)) {

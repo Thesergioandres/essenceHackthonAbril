@@ -8,6 +8,8 @@ export interface Donation {
   quantity: number;
   status: DonationStatus;
   expirationDate: Date;
+  assignedAt: Date;
+  reassignmentCount: number;
   requestedByTenantId?: string;
   assignedVolunteerId?: string;
   donorPhoto?: string;

@@ -13,7 +13,8 @@ const mapUser = (document: UserDocument): User => {
     name: document.name,
     email: document.email,
     role: document.role,
-    profileType: document.profileType
+    profileType: document.profileType,
+    penalties: Number.isFinite(document.penalties) ? document.penalties : 0
   };
 };
 
@@ -25,7 +26,8 @@ export class MongoUserRepository implements IUserRepository {
         name: record.name,
         email: record.email,
         role: record.role,
-        profileType: record.profileType
+        profileType: record.profileType,
+        penalties: 0
       });
 
       return mapUser(user);
@@ -103,6 +105,33 @@ export class MongoUserRepository implements IUserRepository {
         error instanceof Error ? error.message : "Unknown persistence failure";
 
       throw new RepositoryError(`User query by tenant and roles failed: ${message}`);
+    }
+  }
+
+  async incrementPenalties(userId: string, amount: number): Promise<User | null> {
+    try {
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return null;
+      }
+
+      const user = await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          $inc: {
+            penalties: amount
+          }
+        },
+        {
+          new: true
+        }
+      ).exec();
+
+      return user ? mapUser(user) : null;
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unknown persistence failure";
+
+      throw new RepositoryError(`User penalty update failed: ${message}`);
     }
   }
 }

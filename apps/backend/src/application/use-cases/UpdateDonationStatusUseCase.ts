@@ -8,6 +8,10 @@ import {
 } from "../../domain/repositories/IDonationRepository";
 import { IReceiptLogRepository } from "../../domain/repositories/IReceiptLogRepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
+import {
+  isFoundationRole,
+  isVolunteerRole
+} from "../policies/userRolePolicy";
 import { NotificationService } from "../services/NotificationService";
 
 export interface UpdateDonationStatusInput {
@@ -77,7 +81,7 @@ export class UpdateDonationStatusUseCase {
         throw new ValidationError("Donation must be available before requesting.");
       }
 
-      if (actor.role !== "super_admin" && actor.role !== "god") {
+      if (!isFoundationRole(actor.role)) {
         throw new ForbiddenError("Only foundation admins can request a donation.");
       }
 
@@ -87,8 +91,17 @@ export class UpdateDonationStatusUseCase {
 
       const volunteer = await this.userRepository.findById(assignedVolunteerId);
 
-      if (!volunteer || volunteer.tenantId !== tenantId || volunteer.role !== "employee") {
-        throw new ValidationError("assignedVolunteerId must belong to a tenant volunteer.");
+      const isFoundationSelfVolunteer =
+        actor.role === "foundation" && assignedVolunteerId === actor.id;
+
+      if (
+        !volunteer ||
+        volunteer.tenantId !== tenantId ||
+        (!isVolunteerRole(volunteer.role) && !isFoundationSelfVolunteer)
+      ) {
+        throw new ValidationError(
+          "assignedVolunteerId must belong to a tenant volunteer or match the requesting foundation user."
+        );
       }
 
       const updatedRequestedDonation = await this.donationRepository.updateStatus({
@@ -96,6 +109,7 @@ export class UpdateDonationStatusUseCase {
         tenantId,
         currentStatus: donation.status,
         status: "requested",
+        assignedAt: new Date(),
         requestedByTenantId: tenantId,
         assignedVolunteerId
       });
@@ -118,12 +132,12 @@ export class UpdateDonationStatusUseCase {
         throw new ValidationError("Donation must be requested before pickup.");
       }
 
-      if (actor.role !== "employee") {
-        throw new ForbiddenError("Only volunteers can pick up donations.");
-      }
+      const canOperateAsVolunteer =
+        donation.assignedVolunteerId === actor.id &&
+        (isVolunteerRole(actor.role) || actor.role === "foundation");
 
-      if (donation.assignedVolunteerId !== actor.id) {
-        throw new ForbiddenError("Only the assigned volunteer can pick up this donation.");
+      if (!canOperateAsVolunteer) {
+        throw new ForbiddenError("Only volunteers can pick up donations.");
       }
 
       const pickupPhoto = normalizePhoto(input.photo);
@@ -133,6 +147,7 @@ export class UpdateDonationStatusUseCase {
         tenantId,
         currentStatus: donation.status,
         status: "picked_up",
+        assignedAt: new Date(),
         pickupPhoto
       });
 
@@ -154,11 +169,11 @@ export class UpdateDonationStatusUseCase {
       throw new ValidationError("Donation must be picked up before delivery.");
     }
 
-    if (actor.role !== "employee") {
-      throw new ForbiddenError("Only volunteers can deliver donations.");
-    }
+    const canOperateAsVolunteer =
+      donation.assignedVolunteerId === actor.id &&
+      (isVolunteerRole(actor.role) || actor.role === "foundation");
 
-    if (donation.assignedVolunteerId !== actor.id) {
+    if (!canOperateAsVolunteer) {
       throw new ForbiddenError("Only the assigned volunteer can deliver this donation.");
     }
 

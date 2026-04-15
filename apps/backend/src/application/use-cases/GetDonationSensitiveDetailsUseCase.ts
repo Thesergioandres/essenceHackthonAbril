@@ -4,6 +4,10 @@ import { NotFoundError } from "../../domain/errors/NotFoundError";
 import { ValidationError } from "../../domain/errors/ValidationError";
 import { IDonationRepository } from "../../domain/repositories/IDonationRepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
+import {
+  isFoundationRole,
+  isVolunteerRole
+} from "../policies/userRolePolicy";
 
 export interface GetDonationSensitiveDetailsInput {
   donationId: string;
@@ -48,11 +52,12 @@ export class GetDonationSensitiveDetailsUseCase {
 
     if (donation.status === "requested") {
       const isRequestingFoundation =
-        (viewer.role === "super_admin" || viewer.role === "god") &&
+        isFoundationRole(viewer.role) &&
         donation.requestedByTenantId === tenantId;
 
       const isAssignedVolunteer =
-        viewer.role === "employee" && donation.assignedVolunteerId === viewer.id;
+        donation.assignedVolunteerId === viewer.id &&
+        (isVolunteerRole(viewer.role) || viewer.role === "foundation");
 
       if (!isRequestingFoundation && !isAssignedVolunteer) {
         throw new ForbiddenError(

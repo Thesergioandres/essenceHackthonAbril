@@ -1,20 +1,25 @@
 import { Notification, NotificationChannel } from "../../domain/entities/Notification";
+import { UserRole } from "../../domain/entities/User";
 import { ForbiddenError } from "../../domain/errors/ForbiddenError";
 import { ValidationError } from "../../domain/errors/ValidationError";
 import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
+import {
+  isFoundationRole,
+  isVolunteerRole
+} from "../policies/userRolePolicy";
 
 export interface ListNotificationsInput {
   tenantId: string;
   userId: string;
 }
 
-const resolveChannel = (role: string): NotificationChannel => {
-  if (role === "super_admin" || role === "god") {
+const resolveChannel = (role: UserRole): NotificationChannel => {
+  if (isFoundationRole(role)) {
     return "foundation";
   }
 
-  if (role === "employee") {
+  if (isVolunteerRole(role)) {
     return "volunteer";
   }
 
