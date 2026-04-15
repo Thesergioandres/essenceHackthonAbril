@@ -288,7 +288,18 @@ const request = async <TResponse, TBody = unknown>(
         ? (details as { message: string }).message
         : `HTTP ${response.status} ${response.statusText}`;
 
-    throw new HttpError(response.status, errorMessage, details);
+    const error = new HttpError(response.status, errorMessage, details);
+
+    // AUTO-HEALING: If the tenant is not found (404), clear stale session
+    if (response.status === 404 && errorMessage.includes("organization not found")) {
+      console.warn("Stale organization session detected. Auto-clearing session...");
+      clearRuntimeSession();
+      if (isBrowser()) {
+        window.location.reload();
+      }
+    }
+
+    throw error;
   }
 
   if (response.status === 204) {

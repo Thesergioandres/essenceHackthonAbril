@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { Organization, OrganizationLocation } from "@/domain/models/Organization";
 import { User, UserType } from "@/domain/models/User";
 import {
