@@ -1,14 +1,22 @@
 import { model, Schema, type HydratedDocument } from "mongoose";
 import { DonationStatus } from "../../../domain/entities/Donation";
 
-const DONATION_STATUSES: DonationStatus[] = ["pending", "in_transit", "delivered"];
+const DONATION_STATUSES: DonationStatus[] = [
+  "available",
+  "requested",
+  "picked_up",
+  "delivered"
+];
 
 export interface DonationPersistence {
   tenantId: string;
+  donorId: string;
   title: string;
   quantity: number;
   status: DonationStatus;
   expirationDate: Date;
+  requestedByTenantId?: string;
+  assignedVolunteerId?: string;
   donorPhoto?: string;
   pickupPhoto?: string;
   deliveryPhoto?: string;
@@ -20,6 +28,11 @@ const donationSchema = new Schema<DonationPersistence>(
       type: String,
       required: true,
       index: true,
+      trim: true
+    },
+    donorId: {
+      type: String,
+      required: true,
       trim: true
     },
     title: {
@@ -41,6 +54,16 @@ const donationSchema = new Schema<DonationPersistence>(
       type: Date,
       required: true
     },
+    requestedByTenantId: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    assignedVolunteerId: {
+      type: String,
+      required: false,
+      trim: true
+    },
     donorPhoto: {
       type: String,
       required: false
@@ -61,6 +84,7 @@ const donationSchema = new Schema<DonationPersistence>(
 );
 
 donationSchema.index({ tenantId: 1, status: 1 });
+donationSchema.index({ tenantId: 1, assignedVolunteerId: 1 });
 
 export type DonationDocument = HydratedDocument<DonationPersistence>;
 

@@ -3,6 +3,10 @@ import {
   CreateDonationInput,
   CreateDonationUseCase
 } from "../../../application/use-cases/CreateDonationUseCase";
+import {
+  GetDonationSensitiveDetailsInput,
+  GetDonationSensitiveDetailsUseCase
+} from "../../../application/use-cases/GetDonationSensitiveDetailsUseCase";
 import { ListTenantDonationsUseCase } from "../../../application/use-cases/ListTenantDonationsUseCase";
 import {
   UpdateDonationStatusInput,
@@ -13,6 +17,7 @@ import { UnauthorizedError } from "../../../domain/errors/UnauthorizedError";
 import { ValidationError } from "../../../domain/errors/ValidationError";
 
 interface CreateDonationRequestBody {
+  donorId?: unknown;
   title?: unknown;
   quantity?: unknown;
   expirationDate?: unknown;
@@ -21,6 +26,7 @@ interface CreateDonationRequestBody {
 
 interface UpdateDonationStatusRequestBody {
   status?: unknown;
+  assignedVolunteerId?: unknown;
   photo?: unknown;
 }
 
@@ -33,7 +39,8 @@ export class DonationController {
   constructor(
     private readonly createDonationUseCase: CreateDonationUseCase,
     private readonly listTenantDonationsUseCase: ListTenantDonationsUseCase,
-    private readonly updateDonationStatusUseCase: UpdateDonationStatusUseCase
+    private readonly updateDonationStatusUseCase: UpdateDonationStatusUseCase,
+    private readonly getDonationSensitiveDetailsUseCase: GetDonationSensitiveDetailsUseCase
   ) {}
 
   create = async (
@@ -61,7 +68,31 @@ export class DonationController {
     try {
       const tenantId = this.resolveTenantId(request);
       const donations = await this.listTenantDonationsUseCase.execute(tenantId);
-      response.status(200).json(donations);
+      const sanitizedDonations = donations.map((donation) => {
+        if (donation.status !== "requested") {
+          return donation;
+        }
+
+        const { donorId: _donorId, donorPhoto: _donorPhoto, ...safeDonation } = donation;
+
+        return safeDonation;
+      });
+
+      response.status(200).json(sanitizedDonations);
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  getById = async (
+    request: Request<DonationRouteParams>,
+    response: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const input = this.parseGetByIdInput(request.params, request);
+      const donation = await this.getDonationSensitiveDetailsUseCase.execute(input);
+      response.status(200).json(donation);
     } catch (error: unknown) {
       next(error);
     }
@@ -73,10 +104,13 @@ export class DonationController {
     next: NextFunction
   ): Promise<void> => {
     try {
+      const tenantId = this.resolveTenantId(request);
+      const actorUserId = this.resolveUserId(request);
       const input = this.parseUpdateDonationStatusInput(
         request.params,
         request.body,
-        this.resolveTenantId(request)
+        tenantId,
+        actorUserId
       );
       const donation = await this.updateDonationStatusUseCase.execute(input);
       response.status(200).json(donation);
@@ -86,6 +120,10 @@ export class DonationController {
   };
 
   private parseCreateDonationInput(body: CreateDonationRequestBody): CreateDonationInput {
+    if (typeof body.donorId !== "string") {
+      throw new ValidationError("donorId must be a string.");
+    }
+
     if (typeof body.title !== "string") {
       throw new ValidationError("title must be a string.");
     }
@@ -99,6 +137,7 @@ export class DonationController {
 
     return {
       tenantId: "",
+      donorId: body.donorId,
       title: body.title,
       quantity: body.quantity,
       expirationDate,
@@ -109,7 +148,8 @@ export class DonationController {
   private parseUpdateDonationStatusInput(
     params: DonationRouteParams,
     body: UpdateDonationStatusRequestBody,
-    tenantId: string
+    tenantId: string,
+    actorUserId: string
   ): UpdateDonationStatusInput {
     if (typeof params.id !== "string") {
       throw new ValidationError("id param is required.");
@@ -122,22 +162,64 @@ export class DonationController {
     }
 
     const status = this.parseStatus(body.status);
+
+    const input: UpdateDonationStatusInput = {
+      donationId,
+      tenantId,
+      actorUserId,
+      status
+    };
+
+    if (status === "requested") {
+      const assignedVolunteerId = this.parseRequiredString(
+        body.assignedVolunteerId,
+        "assignedVolunteerId"
+      );
+
+      return {
+        ...input,
+        assignedVolunteerId
+      };
+    }
+
     const photo = this.parseRequiredPhoto(body.photo);
 
     return {
-      donationId,
-      tenantId,
-      status,
+      ...input,
       photo
     };
   }
 
+  private parseGetByIdInput(
+    params: DonationRouteParams,
+    request: Request
+  ): GetDonationSensitiveDetailsInput {
+    if (typeof params.id !== "string") {
+      throw new ValidationError("id param is required.");
+    }
+
+    const donationId = params.id.trim();
+
+    if (donationId.length === 0) {
+      throw new ValidationError("id param is required.");
+    }
+
+    const tenantId = this.resolveTenantId(request);
+    const viewerUserId = this.resolveUserId(request);
+
+    return {
+      donationId,
+      tenantId,
+      viewerUserId
+    };
+  }
+
   private parseStatus(value: unknown): DonationStatusUpdate {
-    if (value === "in_transit" || value === "delivered") {
+    if (value === "requested" || value === "picked_up" || value === "delivered") {
       return value;
     }
 
-    throw new ValidationError("status must be in_transit or delivered.");
+    throw new ValidationError("status must be requested, picked_up or delivered.");
   }
 
   private parseRequiredPhoto(value: unknown): string {
@@ -168,6 +250,20 @@ export class DonationController {
     return trimmedPhoto.length > 0 ? trimmedPhoto : undefined;
   }
 
+  private parseRequiredString(value: unknown, fieldName: string): string {
+    if (typeof value !== "string") {
+      throw new ValidationError(`${fieldName} must be a string.`);
+    }
+
+    const trimmedValue = value.trim();
+
+    if (trimmedValue.length === 0) {
+      throw new ValidationError(`${fieldName} is required.`);
+    }
+
+    return trimmedValue;
+  }
+
   private resolveTenantId(request: Request): string {
     const tenantId = request.header("x-tenant-id");
 
@@ -176,6 +272,16 @@ export class DonationController {
     }
 
     return tenantId.trim();
+  }
+
+  private resolveUserId(request: Request): string {
+    const userId = request.header("x-user-id");
+
+    if (!userId || userId.trim().length === 0) {
+      throw new UnauthorizedError("x-user-id header is required.");
+    }
+
+    return userId.trim();
   }
 
   private parseExpirationDate(value: unknown): Date {

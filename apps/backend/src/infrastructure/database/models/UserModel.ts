@@ -1,13 +1,15 @@
 import { model, Schema, type HydratedDocument } from "mongoose";
-import { UserRole } from "../../../domain/entities/User";
+import { UserProfileType, UserRole } from "../../../domain/entities/User";
 
-const USER_ROLES: UserRole[] = ["god", "super_admin", "employee"];
+const USER_ROLES: UserRole[] = ["god", "super_admin", "employee", "donor"];
+const USER_PROFILE_TYPES: UserProfileType[] = ["organization", "natural_person"];
 
 export interface UserPersistence {
   tenantId: string;
   name: string;
   email: string;
   role: UserRole;
+  profileType: UserProfileType;
 }
 
 const userSchema = new Schema<UserPersistence>(
@@ -32,6 +34,11 @@ const userSchema = new Schema<UserPersistence>(
     role: {
       type: String,
       enum: USER_ROLES,
+      required: true
+    },
+    profileType: {
+      type: String,
+      enum: USER_PROFILE_TYPES,
       required: true
     }
   },
