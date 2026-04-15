@@ -1,0 +1,15 @@
+{
+  "name": "rura-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace @rura/backend",
+    "dev:frontend": "npm run dev --workspace @rura/frontend",
+    "build": "npm run build --workspace @rura/backend && npm run build --workspace @rura/frontend",
+    "typecheck": "npm run typecheck --workspace @rura/backend && npm run typecheck --workspace @rura/frontend"
+  }
+}
