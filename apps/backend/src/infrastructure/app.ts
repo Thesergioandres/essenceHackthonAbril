@@ -19,6 +19,7 @@ import { createNotificationRoutes } from "./http/routes/notificationRoutes";
 import { createOrganizationRoutes } from "./http/routes/organizationRoutes";
 import { createUrgentNeedRoutes } from "./http/routes/urgentNeedRoutes";
 import { createUserRoutes } from "./http/routes/userRoutes";
+import { env } from "./config/env";
 
 interface CreateAppDependencies {
   healthController: HealthController;
@@ -46,13 +47,20 @@ export const createApp = ({
   tenantAuthMiddleware
 }: CreateAppDependencies): Express => {
   const app = express();
+  const allowedOrigins = new Set(env.corsAllowedOrigins);
+  const corsOptions: cors.CorsOptions = {
+    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
 
-  app.use(
-    cors({
-      origin: true,
-      credentials: true,
-    })
-  );
+      callback(new Error("Origin not allowed by CORS"));
+    }
+  };
+
+  app.use(cors(corsOptions));
   app.use(express.json({ limit: "12mb" }));
 
   app.get("/", (_request: Request, response: Response) => {

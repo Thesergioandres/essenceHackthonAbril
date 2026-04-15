@@ -17,6 +17,7 @@ Set these in Railway -> Backend service -> Variables:
 MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>/<db>?retryWrites=true&w=majority
 JWT_SECRET=<strong-random-secret>
 JWT_EXPIRES_IN=12h
+CORS_ALLOWED_ORIGINS=https://<your-frontend-service>.up.railway.app,http://localhost:3000
 NODE_ENV=production
 ```
 

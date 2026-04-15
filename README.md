@@ -33,6 +33,7 @@ PORT=4000
 MONGODB_URI=mongodb://localhost:27017/rura
 JWT_SECRET=replace_with_a_secure_secret
 JWT_EXPIRES_IN=12h
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
 ### 2) Frontend
