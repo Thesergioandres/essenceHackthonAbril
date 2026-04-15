@@ -1,5 +1,6 @@
 export interface Organization {
   id: string;
   name: string;
-  isActive: boolean;
+  address: string;
+  createdAt: string;
 }

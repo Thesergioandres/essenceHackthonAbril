@@ -5,18 +5,31 @@ import { Organization } from "@/domain/models/Organization";
 import { getTenantIdFromRuntime, setTenantIdInRuntime } from "@/infrastructure/network/httpClient";
 
 const organizations: Organization[] = [
-  { id: "tenant-demo", name: "Central Kitchen - Downtown", isActive: true },
-  { id: "tenant-north", name: "North Rescue Hub", isActive: true },
-  { id: "tenant-paused", name: "Sunset Community Pantry", isActive: false }
+  {
+    id: "tenant-demo",
+    name: "Central Kitchen - Downtown",
+    address: "14th Avenue 121, Downtown",
+    createdAt: "2026-04-01T10:00:00.000Z"
+  },
+  {
+    id: "tenant-north",
+    name: "North Rescue Hub",
+    address: "North Harbor Street 88",
+    createdAt: "2026-04-02T10:00:00.000Z"
+  },
+  {
+    id: "tenant-east",
+    name: "East Community Pantry",
+    address: "Liberty Road 45",
+    createdAt: "2026-04-03T10:00:00.000Z"
+  }
 ];
 
-const DEFAULT_TENANT_ID = organizations.find((organization) => organization.isActive)?.id ?? "tenant-demo";
+const DEFAULT_TENANT_ID = organizations[0]?.id ?? "tenant-demo";
 
 const resolveInitialTenantId = (): string => {
   const runtimeTenantId = getTenantIdFromRuntime();
-  const selectedTenant = organizations.find(
-    (organization) => organization.id === runtimeTenantId && organization.isActive
-  );
+  const selectedTenant = organizations.find((organization) => organization.id === runtimeTenantId);
 
   const initialTenantId = selectedTenant?.id ?? DEFAULT_TENANT_ID;
   setTenantIdInRuntime(initialTenantId);
@@ -49,7 +62,7 @@ const emitChange = (): void => {
 const setActiveTenantInStore = (tenantId: string): void => {
   const selected = organizations.find((organization) => organization.id === tenantId);
 
-  if (!selected || !selected.isActive) {
+  if (!selected) {
     return;
   }
 

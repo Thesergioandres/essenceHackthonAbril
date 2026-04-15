@@ -18,18 +18,14 @@ export const BusinessSelector = (): JSX.Element => {
           aria-label="Seleccionar organizacion"
         >
           {organizations.map((organization) => (
-            <option
-              key={organization.id}
-              value={organization.id}
-              disabled={!organization.isActive}
-            >
+            <option key={organization.id} value={organization.id}>
               {organization.name}
             </option>
           ))}
         </select>
 
         <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
-          {activeOrganization.isActive ? "Operativo" : "Inactivo"}
+          {activeOrganization.address}
         </span>
       </div>
     </div>

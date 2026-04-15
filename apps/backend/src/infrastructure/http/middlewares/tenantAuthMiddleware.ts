@@ -1,12 +1,13 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
-import { ForbiddenError } from "../../../domain/errors/ForbiddenError";
+import { NotFoundError } from "../../../domain/errors/NotFoundError";
+import { UnauthorizedError } from "../../../domain/errors/UnauthorizedError";
 import { IOrganizationRepository } from "../../../domain/repositories/IOrganizationRepository";
 
 const resolveTenantIdFromHeader = (request: Request): string => {
   const tenantId = request.header("x-tenant-id");
 
   if (!tenantId || tenantId.trim().length === 0) {
-    throw new ForbiddenError("x-tenant-id header is required.");
+    throw new UnauthorizedError("x-tenant-id header is required.");
   }
 
   return tenantId.trim();
@@ -24,10 +25,8 @@ export const createTenantAuthMiddleware = (
       const tenantId = resolveTenantIdFromHeader(request);
       const organization = await organizationRepository.findByTenantId(tenantId);
 
-      if (!organization || !organization.isActive) {
-        throw new ForbiddenError(
-          "Tenant access is blocked because organization does not exist or is inactive."
-        );
+      if (!organization) {
+        throw new NotFoundError("Tenant organization not found.");
       }
 
       next();

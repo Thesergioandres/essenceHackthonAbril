@@ -4,7 +4,7 @@ import {
   CreateDonationUseCase
 } from "../../../application/use-cases/CreateDonationUseCase";
 import { ListTenantDonationsUseCase } from "../../../application/use-cases/ListTenantDonationsUseCase";
-import { ForbiddenError } from "../../../domain/errors/ForbiddenError";
+import { UnauthorizedError } from "../../../domain/errors/UnauthorizedError";
 import { ValidationError } from "../../../domain/errors/ValidationError";
 
 interface CreateDonationRequestBody {
@@ -73,7 +73,7 @@ export class DonationController {
     const tenantId = request.header("x-tenant-id");
 
     if (!tenantId || tenantId.trim().length === 0) {
-      throw new ForbiddenError("x-tenant-id header is required.");
+      throw new UnauthorizedError("x-tenant-id header is required.");
     }
 
     return tenantId.trim();

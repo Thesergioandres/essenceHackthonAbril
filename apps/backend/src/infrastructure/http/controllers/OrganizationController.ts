@@ -3,20 +3,12 @@ import {
   CreateOrganizationInput,
   CreateOrganizationUseCase
 } from "../../../application/use-cases/CreateOrganizationUseCase";
-import { OrganizationPlan } from "../../../domain/entities/Organization";
 import { ValidationError } from "../../../domain/errors/ValidationError";
-
-const ORGANIZATION_PLANS: OrganizationPlan[] = ["starter", "growth", "enterprise"];
 
 interface CreateOrganizationRequestBody {
   name?: unknown;
-  plan?: unknown;
-  isActive?: unknown;
+  address?: unknown;
 }
-
-const isOrganizationPlan = (value: string): value is OrganizationPlan => {
-  return ORGANIZATION_PLANS.includes(value as OrganizationPlan);
-};
 
 export class OrganizationController {
   constructor(private readonly createOrganizationUseCase: CreateOrganizationUseCase) {}
@@ -40,23 +32,13 @@ export class OrganizationController {
       throw new ValidationError("name must be a string.");
     }
 
-    if (typeof body.plan !== "string" || !isOrganizationPlan(body.plan)) {
-      throw new ValidationError("plan must be one of: starter, growth, enterprise.");
+    if (typeof body.address !== "string") {
+      throw new ValidationError("address must be a string.");
     }
 
-    if (typeof body.isActive !== "undefined" && typeof body.isActive !== "boolean") {
-      throw new ValidationError("isActive must be a boolean.");
-    }
-
-    const input: CreateOrganizationInput = {
+    return {
       name: body.name,
-      plan: body.plan
+      address: body.address
     };
-
-    if (typeof body.isActive === "boolean") {
-      input.isActive = body.isActive;
-    }
-
-    return input;
   }
 }

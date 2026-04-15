@@ -14,8 +14,9 @@ const mapOrganization = (document: OrganizationDocument): Organization => {
   return {
     id: document.id,
     name: document.name,
-    isActive: document.isActive,
-    plan: document.plan
+    address: document.address,
+    createdAt:
+      document.createdAt instanceof Date ? document.createdAt : new Date(0)
   };
 };
 
@@ -24,8 +25,7 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
     try {
       const organization = await OrganizationModel.create({
         name: record.name,
-        isActive: record.isActive,
-        plan: record.plan
+        address: record.address
       });
 
       return mapOrganization(organization);

@@ -1,12 +1,10 @@
 import { model, Schema, type HydratedDocument } from "mongoose";
-import { OrganizationPlan } from "../../../domain/entities/Organization";
-
-const ORGANIZATION_PLANS: OrganizationPlan[] = ["starter", "growth", "enterprise"];
 
 export interface OrganizationPersistence {
   name: string;
-  isActive: boolean;
-  plan: OrganizationPlan;
+  address: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const organizationSchema = new Schema<OrganizationPersistence>(
@@ -16,15 +14,10 @@ const organizationSchema = new Schema<OrganizationPersistence>(
       required: true,
       trim: true
     },
-    isActive: {
-      type: Boolean,
-      required: true,
-      default: true
-    },
-    plan: {
+    address: {
       type: String,
-      enum: ORGANIZATION_PLANS,
-      required: true
+      required: true,
+      trim: true
     }
   },
   {
