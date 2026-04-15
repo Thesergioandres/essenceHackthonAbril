@@ -1,11 +1,10 @@
-const DEFAULT_API_BASE_URL = "http://localhost:4000/api/v1";
+const DEFAULT_API_BASE_URL = "http://localhost:4000/api";
 const TENANT_STORAGE_KEY = "rura.activeTenantId";
 const TENANT_GLOBAL_KEY = "__RURA_ACTIVE_TENANT_ID__";
 const USER_ID_STORAGE_KEY = "rura.activeUserId";
 const USER_TYPE_STORAGE_KEY = "rura.activeUserType";
 const USER_ID_GLOBAL_KEY = "__RURA_ACTIVE_USER_ID__";
 const USER_TYPE_GLOBAL_KEY = "__RURA_ACTIVE_USER_TYPE__";
-const FALLBACK_TENANT_ID = "tenant-demo";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -83,7 +82,7 @@ const buildUrl = (path: string, query?: Record<string, QueryParamValue>): string
 
 export const getTenantIdFromRuntime = (): string => {
   if (!isBrowser()) {
-    return FALLBACK_TENANT_ID;
+    return "";
   }
 
   const tenantInWindow = window[TENANT_GLOBAL_KEY];
@@ -96,7 +95,7 @@ export const getTenantIdFromRuntime = (): string => {
     return tenantInStorage;
   }
 
-  return FALLBACK_TENANT_ID;
+  return "";
 };
 
 export const setTenantIdInRuntime = (tenantId: string): void => {
@@ -104,8 +103,16 @@ export const setTenantIdInRuntime = (tenantId: string): void => {
     return;
   }
 
-  window[TENANT_GLOBAL_KEY] = tenantId;
-  window.localStorage.setItem(TENANT_STORAGE_KEY, tenantId);
+  const normalizedTenantId = tenantId.trim();
+
+  if (normalizedTenantId.length === 0) {
+    delete window[TENANT_GLOBAL_KEY];
+    window.localStorage.removeItem(TENANT_STORAGE_KEY);
+    return;
+  }
+
+  window[TENANT_GLOBAL_KEY] = normalizedTenantId;
+  window.localStorage.setItem(TENANT_STORAGE_KEY, normalizedTenantId);
 };
 
 export const getUserContextFromRuntime = (): RuntimeUserContext => {
@@ -131,14 +138,48 @@ export const setUserContextInRuntime = (userContext: RuntimeUserContext): void =
   }
 
   if (typeof userContext.userId === "string") {
-    window[USER_ID_GLOBAL_KEY] = userContext.userId;
-    window.localStorage.setItem(USER_ID_STORAGE_KEY, userContext.userId);
+    const normalizedUserId = userContext.userId.trim();
+
+    if (normalizedUserId.length > 0) {
+      window[USER_ID_GLOBAL_KEY] = normalizedUserId;
+      window.localStorage.setItem(USER_ID_STORAGE_KEY, normalizedUserId);
+    } else {
+      delete window[USER_ID_GLOBAL_KEY];
+      window.localStorage.removeItem(USER_ID_STORAGE_KEY);
+    }
+  } else {
+    delete window[USER_ID_GLOBAL_KEY];
+    window.localStorage.removeItem(USER_ID_STORAGE_KEY);
   }
 
   if (typeof userContext.userType === "string") {
-    window[USER_TYPE_GLOBAL_KEY] = userContext.userType;
-    window.localStorage.setItem(USER_TYPE_STORAGE_KEY, userContext.userType);
+    const normalizedUserType = userContext.userType.trim();
+
+    if (normalizedUserType.length > 0) {
+      window[USER_TYPE_GLOBAL_KEY] = normalizedUserType;
+      window.localStorage.setItem(USER_TYPE_STORAGE_KEY, normalizedUserType);
+    } else {
+      delete window[USER_TYPE_GLOBAL_KEY];
+      window.localStorage.removeItem(USER_TYPE_STORAGE_KEY);
+    }
+  } else {
+    delete window[USER_TYPE_GLOBAL_KEY];
+    window.localStorage.removeItem(USER_TYPE_STORAGE_KEY);
   }
+};
+
+export const clearRuntimeSession = (): void => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  delete window[TENANT_GLOBAL_KEY];
+  delete window[USER_ID_GLOBAL_KEY];
+  delete window[USER_TYPE_GLOBAL_KEY];
+
+  window.localStorage.removeItem(TENANT_STORAGE_KEY);
+  window.localStorage.removeItem(USER_ID_STORAGE_KEY);
+  window.localStorage.removeItem(USER_TYPE_STORAGE_KEY);
 };
 
 const request = async <TResponse, TBody = unknown>(
@@ -158,6 +199,7 @@ const request = async <TResponse, TBody = unknown>(
   } = options;
 
   const resolvedTenantId = tenantId ?? getTenantIdFromRuntime();
+  const normalizedTenantId = resolvedTenantId.trim();
   const runtimeUserContext = getUserContextFromRuntime();
   const resolvedUserId = userId ?? runtimeUserContext.userId;
   const resolvedUserType = userType ?? runtimeUserContext.userType;
@@ -170,7 +212,7 @@ const request = async <TResponse, TBody = unknown>(
     credentials: "include",
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      "x-tenant-id": resolvedTenantId,
+      ...(normalizedTenantId ? { "x-tenant-id": normalizedTenantId } : {}),
       ...(resolvedUserId ? { "x-user-id": resolvedUserId } : {}),
       ...(resolvedUserType
         ? {

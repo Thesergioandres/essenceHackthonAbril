@@ -4,70 +4,59 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { Organization, OrganizationLocation } from "@/domain/models/Organization";
 import { User, UserType } from "@/domain/models/User";
 import {
-  getTenantIdFromRuntime,
-  getUserContextFromRuntime,
+  clearRuntimeSession,
   setTenantIdInRuntime,
   setUserContextInRuntime
 } from "@/infrastructure/network/httpClient";
 
-const initialOrganizations = [
-  {
-    id: "tenant-demo",
-    name: "Central Kitchen - Downtown",
-    location: {
-      lat: 2.928611,
-      lng: -75.281111,
-      addressString: "Carrera 5 #14-24, Neiva"
-    },
-    createdAt: "2026-04-01T10:00:00.000Z"
-  },
-  {
-    id: "tenant-north",
-    name: "North Rescue Hub",
-    location: {
-      lat: 2.950241,
-      lng: -75.270628,
-      addressString: "Avenida Circunvalar #88, Neiva"
-    },
-    createdAt: "2026-04-02T10:00:00.000Z"
-  },
-  {
-    id: "tenant-east",
-    name: "East Community Pantry",
-    location: {
-      lat: 2.934109,
-      lng: -75.255864,
-      addressString: "Calle 21 #45-12, Neiva"
-    },
-    createdAt: "2026-04-03T10:00:00.000Z"
-  }
-] satisfies [Organization, ...Organization[]];
+const TENANT_SESSION_STORAGE_KEY = "rura.tenantSession";
+const ALLOWED_USER_TYPES: UserType[] = ["foundation", "volunteer", "donor", "admin"];
 
-const DEFAULT_TENANT_ID = initialOrganizations[0].id;
+interface PersistedTenantSession {
+  activeTenantId: string;
+  activeUserId: string;
+  activeUserType: UserType;
+  organizations: Organization[];
+  users: User[];
+}
 
-const initialUsers = [
-  {
-    id: "user-foundation-01",
-    tenantIds: ["tenant-demo", "tenant-north", "tenant-east"],
-    name: "Laura Fundacion",
-    email: "laura@rura.org",
-    type: "foundation"
+interface TenantState extends PersistedTenantSession {
+  hasSession: boolean;
+}
+
+interface BootstrapTenantSessionInput {
+  organization: Organization;
+  user: User;
+}
+
+const EMPTY_ORGANIZATION: Organization = {
+  id: "",
+  name: "Sin organizacion",
+  location: {
+    lat: 0,
+    lng: 0
   },
-  {
-    id: "user-volunteer-01",
-    tenantIds: ["tenant-demo", "tenant-north", "tenant-east"],
-    name: "Carlos Voluntario",
-    email: "carlos@rura.org",
-    type: "volunteer"
-  }
-] satisfies [User, ...User[]];
+  createdAt: new Date(0).toISOString()
+};
 
-const DEFAULT_USER_ID = initialUsers[0].id;
+const EMPTY_USER: User = {
+  id: "",
+  tenantIds: [],
+  name: "Sin usuario",
+  email: "",
+  type: "foundation"
+};
+
+const isBrowser = (): boolean => typeof window !== "undefined";
+
+const isUserType = (value: unknown): value is UserType => {
+  return ALLOWED_USER_TYPES.includes(value as UserType);
+};
 
 const normalizeLocation = (location: OrganizationLocation): OrganizationLocation => {
   const normalized: OrganizationLocation = {
-    lat: location.lat,
-    lng: location.lng
+    lat: Number.isFinite(location.lat) ? location.lat : 0,
+    lng: Number.isFinite(location.lng) ? location.lng : 0
   };
 
   if (typeof location.addressString === "string") {
@@ -81,51 +70,197 @@ const normalizeLocation = (location: OrganizationLocation): OrganizationLocation
   return normalized;
 };
 
-const resolveInitialTenantId = (organizations: readonly Organization[]): string => {
-  const runtimeTenantId = getTenantIdFromRuntime();
-  const selectedTenant = organizations.find((organization) => organization.id === runtimeTenantId);
-
-  const initialTenantId = selectedTenant?.id ?? DEFAULT_TENANT_ID;
-  setTenantIdInRuntime(initialTenantId);
-  return initialTenantId;
+const normalizeOrganization = (organization: Organization): Organization => {
+  return {
+    id: organization.id.trim(),
+    name: organization.name.trim(),
+    location: normalizeLocation(organization.location),
+    createdAt: organization.createdAt
+  };
 };
 
-const resolveInitialUserId = (users: readonly User[]): string => {
-  const runtimeUserContext = getUserContextFromRuntime();
+const normalizeUser = (user: User): User => {
+  const normalizedType = isUserType(user.type) ? user.type : "foundation";
+  const normalizedTenantIds = user.tenantIds
+    .map((tenantId) => tenantId.trim())
+    .filter((tenantId, index, allTenantIds) => {
+      return tenantId.length > 0 && allTenantIds.indexOf(tenantId) === index;
+    });
 
-  const selectedById =
-    typeof runtimeUserContext.userId === "string"
-      ? users.find((user) => user.id === runtimeUserContext.userId)
-      : undefined;
+  return {
+    id: user.id.trim(),
+    tenantIds: normalizedTenantIds,
+    name: user.name.trim(),
+    email: user.email.trim().toLowerCase(),
+    type: normalizedType
+  };
+};
 
-  const selectedByType =
-    typeof runtimeUserContext.userType === "string"
-      ? users.find((user) => user.type === runtimeUserContext.userType)
-      : undefined;
+const createEmptyTenantState = (): TenantState => {
+  return {
+    hasSession: false,
+    activeTenantId: "",
+    activeUserId: "",
+    activeUserType: "foundation",
+    organizations: [],
+    users: []
+  };
+};
 
-  const selectedUser = selectedById ?? selectedByType ?? users[0];
+const toPersistedSession = (value: unknown): PersistedTenantSession | null => {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
 
+  const raw = value as {
+    activeTenantId?: unknown;
+    activeUserId?: unknown;
+    activeUserType?: unknown;
+    organizations?: unknown;
+    users?: unknown;
+  };
+
+  if (!Array.isArray(raw.organizations) || !Array.isArray(raw.users)) {
+    return null;
+  }
+
+  const organizations = raw.organizations
+    .filter((organization): organization is Organization => {
+      if (typeof organization !== "object" || organization === null) {
+        return false;
+      }
+
+      const candidate = organization as Partial<Organization>;
+
+      return (
+        typeof candidate.id === "string" &&
+        typeof candidate.name === "string" &&
+        typeof candidate.createdAt === "string" &&
+        typeof candidate.location === "object" &&
+        candidate.location !== null &&
+        typeof (candidate.location as OrganizationLocation).lat === "number" &&
+        typeof (candidate.location as OrganizationLocation).lng === "number"
+      );
+    })
+    .map((organization) => normalizeOrganization(organization))
+    .filter((organization) => organization.id.length > 0);
+
+  const users = raw.users
+    .filter((user): user is User => {
+      if (typeof user !== "object" || user === null) {
+        return false;
+      }
+
+      const candidate = user as Partial<User>;
+
+      return (
+        typeof candidate.id === "string" &&
+        Array.isArray(candidate.tenantIds) &&
+        typeof candidate.name === "string" &&
+        typeof candidate.email === "string" &&
+        isUserType(candidate.type)
+      );
+    })
+    .map((user) => normalizeUser(user))
+    .filter((user) => user.id.length > 0);
+
+  if (organizations.length === 0 || users.length === 0) {
+    return null;
+  }
+
+  const rawActiveTenantId =
+    typeof raw.activeTenantId === "string" ? raw.activeTenantId.trim() : "";
+  const activeTenantId =
+    organizations.find((organization) => organization.id === rawActiveTenantId)?.id ??
+    organizations[0].id;
+
+  const scopedUsers = users.filter((user) => user.tenantIds.includes(activeTenantId));
+  const tenantUsers = scopedUsers.length > 0 ? scopedUsers : users;
+
+  const rawActiveUserId = typeof raw.activeUserId === "string" ? raw.activeUserId.trim() : "";
+  const activeUser =
+    tenantUsers.find((user) => user.id === rawActiveUserId) ?? tenantUsers[0] ?? users[0];
+
+  if (!activeUser) {
+    return null;
+  }
+
+  const activeUserType = isUserType(raw.activeUserType)
+    ? raw.activeUserType
+    : activeUser.type;
+
+  return {
+    activeTenantId,
+    activeUserId: activeUser.id,
+    activeUserType,
+    organizations,
+    users
+  };
+};
+
+const readPersistedSession = (): PersistedTenantSession | null => {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(TENANT_SESSION_STORAGE_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return toPersistedSession(parsed);
+  } catch {
+    return null;
+  }
+};
+
+const persistSession = (state: TenantState): void => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  if (!state.hasSession) {
+    window.localStorage.removeItem(TENANT_SESSION_STORAGE_KEY);
+    clearRuntimeSession();
+    return;
+  }
+
+  const session: PersistedTenantSession = {
+    activeTenantId: state.activeTenantId,
+    activeUserId: state.activeUserId,
+    activeUserType: state.activeUserType,
+    organizations: state.organizations,
+    users: state.users
+  };
+
+  window.localStorage.setItem(TENANT_SESSION_STORAGE_KEY, JSON.stringify(session));
+  setTenantIdInRuntime(state.activeTenantId);
   setUserContextInRuntime({
-    userId: selectedUser?.id,
-    userType: selectedUser?.type
+    userId: state.activeUserId,
+    userType: state.activeUserType
   });
-
-  return selectedUser?.id ?? DEFAULT_USER_ID;
 };
 
-interface TenantState {
-  activeTenantId: string;
-  activeUserId: string;
-  organizations: Organization[];
-  users: User[];
-}
+const resolveInitialState = (): TenantState => {
+  const persisted = readPersistedSession();
 
-let tenantState: TenantState = {
-  activeTenantId: resolveInitialTenantId(initialOrganizations),
-  activeUserId: resolveInitialUserId(initialUsers),
-  organizations: [...initialOrganizations],
-  users: [...initialUsers]
+  if (!persisted) {
+    return createEmptyTenantState();
+  }
+
+  const initialState: TenantState = {
+    hasSession: true,
+    ...persisted
+  };
+
+  persistSession(initialState);
+  return initialState;
 };
+
+let tenantState: TenantState = resolveInitialState();
 
 const subscribers = new Set<() => void>();
 
@@ -142,63 +277,94 @@ const emitChange = (): void => {
   subscribers.forEach((listener) => listener());
 };
 
-const setActiveTenantInStore = (tenantId: string): void => {
-  const selected = tenantState.organizations.find((organization) => organization.id === tenantId);
-
-  if (!selected) {
-    return;
-  }
-
-  if (selected.id === tenantState.activeTenantId) {
-    return;
-  }
-
-  tenantState = {
-    ...tenantState,
-    activeTenantId: selected.id
-  };
-  setTenantIdInRuntime(selected.id);
+const commitState = (nextState: TenantState): void => {
+  tenantState = nextState;
+  persistSession(nextState);
   emitChange();
+};
+
+const setActiveTenantInStore = (tenantId: string): void => {
+  if (!tenantState.hasSession) {
+    return;
+  }
+
+  const normalizedTenantId = tenantId.trim();
+  const selectedOrganization = tenantState.organizations.find(
+    (organization) => organization.id === normalizedTenantId
+  );
+
+  if (!selectedOrganization || selectedOrganization.id === tenantState.activeTenantId) {
+    return;
+  }
+
+  const scopedUsers = tenantState.users.filter((user) =>
+    user.tenantIds.includes(selectedOrganization.id)
+  );
+  const nextUsers = scopedUsers.length > 0 ? scopedUsers : tenantState.users;
+  const nextActiveUser =
+    nextUsers.find((user) => user.id === tenantState.activeUserId) ?? nextUsers[0];
+
+  if (!nextActiveUser) {
+    return;
+  }
+
+  commitState({
+    ...tenantState,
+    activeTenantId: selectedOrganization.id,
+    activeUserId: nextActiveUser.id,
+    activeUserType: nextActiveUser.type
+  });
 };
 
 const setActiveUserInStore = (userId: string): void => {
-  const selectedUser = tenantState.users.find((user) => user.id === userId);
-
-  if (!selectedUser) {
+  if (!tenantState.hasSession) {
     return;
   }
 
-  if (selectedUser.id === tenantState.activeUserId) {
+  const normalizedUserId = userId.trim();
+  const selectedUser = tenantState.users.find((user) => user.id === normalizedUserId);
+
+  if (!selectedUser || selectedUser.id === tenantState.activeUserId) {
     return;
   }
 
-  tenantState = {
+  commitState({
     ...tenantState,
-    activeUserId: selectedUser.id
-  };
-
-  setUserContextInRuntime({
-    userId: selectedUser.id,
-    userType: selectedUser.type
+    activeUserId: selectedUser.id,
+    activeUserType: selectedUser.type
   });
-
-  emitChange();
 };
 
 const setActiveUserTypeInStore = (userType: UserType): void => {
-  const selectedUser = tenantState.users.find((user) => user.type === userType);
-
-  if (!selectedUser) {
+  if (!tenantState.hasSession || !isUserType(userType)) {
     return;
   }
 
-  setActiveUserInStore(selectedUser.id);
+  const selectedUser = tenantState.users.find((user) => user.type === userType);
+
+  if (!selectedUser) {
+    commitState({
+      ...tenantState,
+      activeUserType: userType
+    });
+    return;
+  }
+
+  commitState({
+    ...tenantState,
+    activeUserId: selectedUser.id,
+    activeUserType: userType
+  });
 };
 
 const setActiveOrganizationLocationInStore = (
   tenantId: string,
   location: OrganizationLocation
 ): void => {
+  if (!tenantState.hasSession) {
+    return;
+  }
+
   const selected = tenantState.organizations.find((organization) => organization.id === tenantId);
 
   if (!selected) {
@@ -217,7 +383,7 @@ const setActiveOrganizationLocationInStore = (
     return;
   }
 
-  tenantState = {
+  commitState({
     ...tenantState,
     organizations: tenantState.organizations.map((organization) => {
       if (organization.id !== tenantId) {
@@ -229,12 +395,42 @@ const setActiveOrganizationLocationInStore = (
         location: normalizedLocation
       };
     })
-  };
+  });
+};
 
-  emitChange();
+const bootstrapSessionInStore = (input: BootstrapTenantSessionInput): void => {
+  const organization = normalizeOrganization(input.organization);
+  const user = normalizeUser(input.user);
+
+  if (organization.id.length === 0 || user.id.length === 0) {
+    return;
+  }
+
+  const userTenantIds = user.tenantIds.includes(organization.id)
+    ? user.tenantIds
+    : [organization.id, ...user.tenantIds];
+
+  commitState({
+    hasSession: true,
+    activeTenantId: organization.id,
+    activeUserId: user.id,
+    activeUserType: user.type,
+    organizations: [organization],
+    users: [
+      {
+        ...user,
+        tenantIds: userTenantIds
+      }
+    ]
+  });
+};
+
+const clearSessionInStore = (): void => {
+  commitState(createEmptyTenantState());
 };
 
 interface UseTenantState {
+  hasSession: boolean;
   organizations: Organization[];
   users: User[];
   activeTenantId: string;
@@ -246,6 +442,8 @@ interface UseTenantState {
   setActiveUserId: (userId: string) => void;
   setActiveUserType: (userType: UserType) => void;
   setActiveOrganizationLocation: (location: OrganizationLocation) => void;
+  bootstrapSession: (input: BootstrapTenantSessionInput) => void;
+  clearSession: () => void;
 }
 
 export const useTenant = (): UseTenantState => {
@@ -270,32 +468,50 @@ export const useTenant = (): UseTenantState => {
     [snapshot.activeTenantId]
   );
 
-  const activeOrganization = useMemo(() => {
-    const fallbackOrganization = snapshot.organizations[0] ?? initialOrganizations[0];
+  const bootstrapSession = useCallback((input: BootstrapTenantSessionInput): void => {
+    bootstrapSessionInStore(input);
+  }, []);
 
+  const clearSession = useCallback((): void => {
+    clearSessionInStore();
+  }, []);
+
+  const activeOrganization = useMemo(() => {
     return (
       snapshot.organizations.find((organization) => organization.id === snapshot.activeTenantId) ??
-      fallbackOrganization
+      snapshot.organizations[0] ??
+      EMPTY_ORGANIZATION
     );
   }, [snapshot.activeTenantId, snapshot.organizations]);
 
   const activeUser = useMemo(() => {
-    const fallbackUser = snapshot.users[0] ?? initialUsers[0];
+    const selectedUser =
+      snapshot.users.find((user) => user.id === snapshot.activeUserId) ?? snapshot.users[0];
 
-    return snapshot.users.find((user) => user.id === snapshot.activeUserId) ?? fallbackUser;
-  }, [snapshot.activeUserId, snapshot.users]);
+    if (!selectedUser) {
+      return EMPTY_USER;
+    }
+
+    return {
+      ...selectedUser,
+      type: snapshot.activeUserType
+    };
+  }, [snapshot.activeUserId, snapshot.activeUserType, snapshot.users]);
 
   return {
+    hasSession: snapshot.hasSession,
     organizations: snapshot.organizations,
     users: snapshot.users,
     activeTenantId: snapshot.activeTenantId,
     activeUserId: activeUser.id,
     activeUser,
-    activeUserType: activeUser.type,
+    activeUserType: snapshot.activeUserType,
     activeOrganization,
     setActiveTenantId,
     setActiveUserId,
     setActiveUserType,
-    setActiveOrganizationLocation
+    setActiveOrganizationLocation,
+    bootstrapSession,
+    clearSession
   };
 };

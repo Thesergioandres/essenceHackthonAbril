@@ -9,6 +9,10 @@ import { ValidationError } from "../../../domain/errors/ValidationError";
 
 interface CreateUrgentNeedRequestBody {
   description?: unknown;
+  title?: unknown;
+  details?: unknown;
+  linkedDonationId?: unknown;
+  donationId?: unknown;
 }
 
 export class UrgentNeedController {
@@ -50,14 +54,53 @@ export class UrgentNeedController {
     body: CreateUrgentNeedRequestBody,
     tenantId: string
   ): CreateUrgentNeedInput {
-    if (typeof body.description !== "string") {
-      throw new ValidationError("description must be a string.");
-    }
+    const description = this.parseDescription(body);
+    const linkedDonationId = this.parseLinkedDonationId(
+      body.linkedDonationId ?? body.donationId
+    );
 
     return {
       tenantId,
-      description: body.description
+      description,
+      ...(linkedDonationId ? { linkedDonationId } : {})
     };
+  }
+
+  private parseDescription(body: CreateUrgentNeedRequestBody): string {
+    if (typeof body.description === "string") {
+      const normalizedDescription = body.description.trim();
+
+      if (normalizedDescription.length > 0) {
+        return normalizedDescription;
+      }
+    }
+
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    const details = typeof body.details === "string" ? body.details.trim() : "";
+    const fallbackDescription = [title, details]
+      .filter((value) => value.length > 0)
+      .join(" - ");
+
+    if (fallbackDescription.length > 0) {
+      return fallbackDescription;
+    }
+
+    throw new ValidationError(
+      "description is required. You can send description directly or provide title/details."
+    );
+  }
+
+  private parseLinkedDonationId(value: unknown): string | undefined {
+    if (typeof value === "undefined") {
+      return undefined;
+    }
+
+    if (typeof value !== "string") {
+      throw new ValidationError("linkedDonationId must be a string.");
+    }
+
+    const normalizedLinkedDonationId = value.trim();
+    return normalizedLinkedDonationId.length > 0 ? normalizedLinkedDonationId : undefined;
   }
 
   private resolveTenantId(request: Request): string {

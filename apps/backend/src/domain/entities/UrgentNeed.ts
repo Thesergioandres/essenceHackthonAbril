@@ -5,5 +5,6 @@ export interface UrgentNeed {
   tenantId: string;
   description: string;
   priority: UrgentNeedPriority;
+  linkedDonationId?: string;
   createdAt: Date;
 }
