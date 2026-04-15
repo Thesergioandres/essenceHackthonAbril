@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node -e \"const {spawnSync}=require('child_process'); const result=spawnSync('next',['build'],{stdio:'inherit',shell:true,env:{...process.env,NEXT_TELEMETRY_DISABLED:'1'}}); process.exit(result.status ?? 1);\"",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

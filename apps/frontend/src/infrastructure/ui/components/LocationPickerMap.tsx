@@ -4,6 +4,7 @@ import {
   APIProvider,
   AdvancedMarker,
   Map,
+  Marker,
   type MapMouseEvent
 } from "@vis.gl/react-google-maps";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -37,7 +38,8 @@ const NEIVA_DEFAULT_CENTER = {
 };
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? "";
-const API_LIBRARIES = ["places"];
+const GOOGLE_MAPS_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID?.trim() ?? "";
+const GOOGLE_MAPS_MAP_ID_DARK = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID_DARK?.trim() ?? "";
 
 const SILVER_MAP_STYLES = [
   {
@@ -357,6 +359,65 @@ const reverseGeocodeCoordinates = async (
   return normalizedAddress.length > 0 ? normalizedAddress : null;
 };
 
+const geocodeAddressText = async (query: string): Promise<LatLngLiteral | null> => {
+  if (GOOGLE_MAPS_API_KEY.length === 0) {
+    return null;
+  }
+
+  const normalizedQuery = query.trim();
+
+  if (normalizedQuery.length === 0) {
+    return null;
+  }
+
+  const geocodeUrl = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+  geocodeUrl.searchParams.set("address", normalizedQuery);
+  geocodeUrl.searchParams.set("key", GOOGLE_MAPS_API_KEY);
+  geocodeUrl.searchParams.set("language", "es");
+  geocodeUrl.searchParams.set("region", "co");
+
+  const response = await fetch(geocodeUrl.toString(), {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as {
+    status?: string;
+    results?: Array<{
+      geometry?: {
+        location?: {
+          lat?: number;
+          lng?: number;
+        };
+      };
+    }>;
+  };
+
+  if (payload.status !== "OK" || !Array.isArray(payload.results) || payload.results.length === 0) {
+    return null;
+  }
+
+  const location = payload.results[0]?.geometry?.location;
+
+  if (
+    typeof location?.lat !== "number" ||
+    typeof location?.lng !== "number" ||
+    !Number.isFinite(location.lat) ||
+    !Number.isFinite(location.lng)
+  ) {
+    return null;
+  }
+
+  return {
+    lat: location.lat,
+    lng: location.lng
+  };
+};
+
 const resolveLocationLabel = (location: OrganizationLocation): string => {
   if (typeof location.addressString === "string") {
     const trimmedAddress = location.addressString.trim();
@@ -381,7 +442,7 @@ export const LocationPickerMap = ({
   const [searchValue, setSearchValue] = useState<string>("");
   const [isLocatingUser, setIsLocatingUser] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isGoogleMapsReady, setIsGoogleMapsReady] = useState<boolean>(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState<boolean>(false);
 
   const latestSelectionId = useRef<number>(0);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -397,6 +458,16 @@ export const LocationPickerMap = ({
   const mapStyles = useMemo(() => {
     return theme === "dark" ? RETRO_MAP_STYLES : SILVER_MAP_STYLES;
   }, [theme]);
+
+  const mapId = useMemo(() => {
+    if (theme === "dark" && GOOGLE_MAPS_MAP_ID_DARK.length > 0) {
+      return GOOGLE_MAPS_MAP_ID_DARK;
+    }
+
+    return GOOGLE_MAPS_MAP_ID;
+  }, [theme]);
+
+  const supportsAdvancedMarker = mapId.length > 0;
 
   const locationLabel = useMemo(() => {
     return resolveLocationLabel(selectedLocation);
@@ -493,54 +564,31 @@ export const LocationPickerMap = ({
     [onLocationSelect, selectedLocation.addressString]
   );
 
-  useEffect(() => {
-    if (
-      !isGoogleMapsReady ||
-      !searchInputRef.current ||
-      typeof google === "undefined" ||
-      !google.maps.places
-    ) {
+  const handleAddressSearch = useCallback(async (): Promise<void> => {
+    const normalizedSearch = searchValue.trim();
+
+    if (normalizedSearch.length === 0) {
+      setLocationError("Escribe una direccion o lugar para buscar en el mapa.");
       return;
     }
 
-    const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
-      fields: ["formatted_address", "geometry", "name"],
-      componentRestrictions: { country: "co" }
-    });
+    setIsSearchingAddress(true);
+    setLocationError(null);
 
-    const listener = autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-      const placeGeometryLocation = place.geometry?.location;
+    try {
+      const coordinates = await geocodeAddressText(normalizedSearch);
 
-      if (!placeGeometryLocation) {
-        setLocationError("Selecciona una sugerencia valida para ubicar el mapa.");
+      if (!coordinates) {
+        setLocationError("No encontramos coincidencias para esa busqueda.");
         return;
       }
 
-      const coordinates = {
-        lat: placeGeometryLocation.lat(),
-        lng: placeGeometryLocation.lng()
-      };
-
-      const placeLabel =
-        typeof place.formatted_address === "string" && place.formatted_address.trim().length > 0
-          ? place.formatted_address.trim()
-          : typeof place.name === "string"
-            ? place.name.trim()
-            : "";
-
-      if (placeLabel.length > 0) {
-        setSearchValue(placeLabel);
-      }
-
       focusMapOnCoordinates(coordinates, 18);
-      void updateLocation(coordinates);
-    });
-
-    return () => {
-      google.maps.event.removeListener(listener);
-    };
-  }, [focusMapOnCoordinates, isGoogleMapsReady, updateLocation]);
+      await updateLocation(coordinates);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }, [focusMapOnCoordinates, searchValue, updateLocation]);
 
   const handleLocateCurrentPosition = useCallback((): void => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -654,10 +702,6 @@ export const LocationPickerMap = ({
         <div className={mapCardClassName}>
           <APIProvider
             apiKey={GOOGLE_MAPS_API_KEY}
-            libraries={API_LIBRARIES}
-            onLoad={() => {
-              setIsGoogleMapsReady(true);
-            }}
           >
             <Map
               defaultCenter={NEIVA_DEFAULT_CENTER}
@@ -672,14 +716,19 @@ export const LocationPickerMap = ({
               onIdle={handleMapIdle}
               onClick={handleMapClick}
               className="h-full w-full"
+              {...(supportsAdvancedMarker ? { mapId } : {})}
             >
-              <AdvancedMarker
-                position={markerPosition}
-                title="Ubicacion del tenant"
-                draggable
-                onClick={handleMarkerClick}
-                onDragEnd={handleMarkerDragEnd}
-              />
+              {supportsAdvancedMarker ? (
+                <AdvancedMarker
+                  position={markerPosition}
+                  title="Ubicacion del tenant"
+                  draggable
+                  onClick={handleMarkerClick}
+                  onDragEnd={handleMarkerDragEnd}
+                />
+              ) : (
+                <Marker position={markerPosition} title="Ubicacion del tenant" />
+              )}
             </Map>
           </APIProvider>
 
@@ -694,6 +743,15 @@ export const LocationPickerMap = ({
                 onChange={(event) => {
                   setSearchValue(event.target.value);
                 }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void handleAddressSearch();
+                }}
                 onClick={(event) => {
                   event.stopPropagation();
                 }}
@@ -701,6 +759,18 @@ export const LocationPickerMap = ({
                 className="w-full bg-transparent text-sm font-medium text-zinc-800 outline-none placeholder:text-zinc-500 dark:text-zinc-100 dark:placeholder:text-zinc-400"
                 aria-label="Buscar direccion o lugar"
               />
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void handleAddressSearch();
+                }}
+                className="inline-flex h-8 items-center justify-center rounded-full bg-primary px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-on-primary transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isSearchingAddress}
+                aria-label="Buscar direccion"
+              >
+                {isSearchingAddress ? "Buscando" : "Buscar"}
+              </button>
             </div>
           </div>
 
