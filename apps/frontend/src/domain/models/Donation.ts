@@ -7,4 +7,7 @@ export interface Donation {
   quantity: number;
   status: DonationStatus;
   expirationDate: string;
+  donorPhoto?: string;
+  pickupPhoto?: string;
+  deliveryPhoto?: string;
 }

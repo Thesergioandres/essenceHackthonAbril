@@ -11,6 +11,9 @@ interface DonationApiEntity {
   status?: string;
   expirationDate?: string;
   expiresAt?: string;
+  donorPhoto?: string;
+  pickupPhoto?: string;
+  deliveryPhoto?: string;
 }
 
 export interface CreateDonationPayload {
@@ -18,6 +21,12 @@ export interface CreateDonationPayload {
   quantity: number;
   status: DonationStatus;
   expirationDate: string;
+  donorPhoto?: string;
+}
+
+interface UpdateDonationStatusPayload {
+  status: DonationStatus;
+  photoBase64: string;
 }
 
 const normalizeStatus = (status: unknown): DonationStatus => {
@@ -35,7 +44,10 @@ const mapDonation = (entity: DonationApiEntity): Donation => {
     title: entity.title ?? entity.foodType ?? "Untitled donation",
     quantity: entity.quantity ?? entity.quantityKg ?? 0,
     status: normalizeStatus(entity.status),
-    expirationDate: entity.expirationDate ?? entity.expiresAt ?? new Date().toISOString()
+    expirationDate: entity.expirationDate ?? entity.expiresAt ?? new Date().toISOString(),
+    donorPhoto: entity.donorPhoto,
+    pickupPhoto: entity.pickupPhoto,
+    deliveryPhoto: entity.deliveryPhoto
   };
 };
 
@@ -51,6 +63,24 @@ export const createDonation = async (
   const response = await httpClient.post<DonationApiEntity, CreateDonationPayload>(
     "/donations",
     payload,
+    { tenantId }
+  );
+
+  return mapDonation(response);
+};
+
+export const updateDonationStatus = async (
+  id: string,
+  tenantId: string,
+  status: DonationStatus,
+  photoBase64: string
+): Promise<Donation> => {
+  const response = await httpClient.patch<DonationApiEntity, UpdateDonationStatusPayload>(
+    `/donations/${id}/status`,
+    {
+      status,
+      photoBase64
+    },
     { tenantId }
   );
 
