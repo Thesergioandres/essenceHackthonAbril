@@ -1,8 +1,9 @@
+export type SubscriptionPlan = "starter" | "growth" | "enterprise";
+
 export interface Organization {
   id: string;
-  tenantId: string;
-  legalName: string;
-  contactEmail: string;
-  active: boolean;
-  createdAt: Date;
+  name: string;
+  ownerId: string;
+  isActive: boolean;
+  subscriptionPlan: SubscriptionPlan;
 }
