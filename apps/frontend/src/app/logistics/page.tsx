@@ -11,7 +11,7 @@ import { SurplusCard } from "@/infrastructure/ui/components/SurplusCard";
 const LogisticsPage = (): JSX.Element => {
   const rootRef = useRef<HTMLElement | null>(null);
   const { activeTenantId, activeOrganization } = useTenant();
-  const { data, isLoading, isError, error, refetch } = useDonations(activeTenantId);
+  const { data, isLoading, isError, error, refetch, updateStatus } = useDonations(activeTenantId);
 
   const rescuedQuantity = useMemo(() => data.reduce((acc, donation) => acc + donation.quantity, 0), [data]);
 
@@ -109,7 +109,7 @@ const LogisticsPage = (): JSX.Element => {
 
             <div className="grid gap-4 md:grid-cols-2">
               {data.map((donation) => (
-                <SurplusCard key={donation.id} donation={donation} />
+                <SurplusCard key={donation.id} donation={donation} updateStatus={updateStatus} />
               ))}
             </div>
           </div>

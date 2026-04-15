@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Donation } from "@/domain/models/Donation";
+import { Donation, DonationStatus } from "@/domain/models/Donation";
 import {
   createDonation,
   CreateDonationPayload,
-  getTenantDonations
+  getTenantDonations,
+  updateDonationStatus as updateDonationStatusRequest
 } from "@/infrastructure/network/donationApi";
 
 interface UseDonationsState {
@@ -15,7 +16,27 @@ interface UseDonationsState {
   error: string | null;
   refetch: () => Promise<void>;
   create: (payload: CreateDonationPayload) => Promise<Donation | null>;
+  updateStatus: (
+    donationId: string,
+    status: DonationStatus,
+    photoBase64: string
+  ) => Promise<Donation | null>;
 }
+
+const getPhotoPatchByStatus = (
+  status: DonationStatus,
+  photoBase64: string
+): Partial<Pick<Donation, "pickupPhoto" | "deliveryPhoto">> => {
+  if (status === "in_transit") {
+    return { pickupPhoto: photoBase64 };
+  }
+
+  if (status === "delivered") {
+    return { deliveryPhoto: photoBase64 };
+  }
+
+  return {};
+};
 
 export const useDonations = (tenantId: string): UseDonationsState => {
   const [data, setData] = useState<Donation[]>([]);
@@ -65,6 +86,65 @@ export const useDonations = (tenantId: string): UseDonationsState => {
     [tenantId]
   );
 
+  const updateStatus = useCallback(
+    async (
+      donationId: string,
+      status: DonationStatus,
+      photoBase64: string
+    ): Promise<Donation | null> => {
+      const currentDonation = data.find((donation) => donation.id === donationId);
+
+      if (!currentDonation) {
+        return null;
+      }
+
+      setIsError(false);
+      setError(null);
+
+      const optimisticDonation: Donation = {
+        ...currentDonation,
+        status,
+        ...getPhotoPatchByStatus(status, photoBase64)
+      };
+
+      setData((currentData) =>
+        currentData.map((donation) =>
+          donation.id === donationId ? optimisticDonation : donation
+        )
+      );
+
+      try {
+        const updated = await updateDonationStatusRequest(
+          donationId,
+          tenantId,
+          status,
+          photoBase64
+        );
+
+        setData((currentData) =>
+          currentData.map((donation) => (donation.id === donationId ? updated : donation))
+        );
+
+        return updated;
+      } catch (requestError: unknown) {
+        const message =
+          requestError instanceof Error
+            ? requestError.message
+            : "Unable to update donation status";
+
+        setData((currentData) =>
+          currentData.map((donation) =>
+            donation.id === donationId ? currentDonation : donation
+          )
+        );
+        setIsError(true);
+        setError(message);
+        return null;
+      }
+    },
+    [data, tenantId]
+  );
+
   useEffect(() => {
     void refetch();
   }, [tenantId, refetch]);
@@ -75,6 +155,7 @@ export const useDonations = (tenantId: string): UseDonationsState => {
     isError,
     error,
     refetch,
-    create
+    create,
+    updateStatus
   };
 };
