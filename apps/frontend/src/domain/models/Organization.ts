@@ -3,5 +3,3 @@ export interface Organization {
   name: string;
   isActive: boolean;
 }
-
-export type Tenant = Organization;

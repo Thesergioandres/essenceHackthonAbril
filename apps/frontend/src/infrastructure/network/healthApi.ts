@@ -38,6 +38,6 @@ const parseSystemHealth = (payload: unknown): SystemHealth => {
 };
 
 export const fetchBackendHealth = async (): Promise<SystemHealth> => {
-  const payload = await apiGet<unknown>("/api/health");
+  const payload = await apiGet<unknown>("/health");
   return parseSystemHealth(payload);
 };
