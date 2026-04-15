@@ -3,5 +3,6 @@ dist
 .next
 .env
 .env.*
+*.env
 !.env.example
 *.tsbuildinfo

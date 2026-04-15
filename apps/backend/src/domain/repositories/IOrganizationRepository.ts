@@ -1,8 +1,8 @@
-import { Organization } from "../entities/Organization";
+import { Organization, OrganizationLocation } from "../entities/Organization";
 
 export interface CreateOrganizationRecord {
   name: string;
-  address: string;
+  location: OrganizationLocation;
 }
 
 export interface IOrganizationRepository {

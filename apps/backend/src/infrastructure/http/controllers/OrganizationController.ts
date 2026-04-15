@@ -5,9 +5,15 @@ import {
 } from "../../../application/use-cases/CreateOrganizationUseCase";
 import { ValidationError } from "../../../domain/errors/ValidationError";
 
+interface CreateOrganizationLocationRequestBody {
+  lat?: unknown;
+  lng?: unknown;
+  addressString?: unknown;
+}
+
 interface CreateOrganizationRequestBody {
   name?: unknown;
-  address?: unknown;
+  location?: unknown;
 }
 
 export class OrganizationController {
@@ -32,13 +38,43 @@ export class OrganizationController {
       throw new ValidationError("name must be a string.");
     }
 
-    if (typeof body.address !== "string") {
-      throw new ValidationError("address must be a string.");
+    if (typeof body.location !== "object" || body.location === null) {
+      throw new ValidationError("location must be an object.");
+    }
+
+    const rawLocation = body.location as CreateOrganizationLocationRequestBody;
+
+    if (typeof rawLocation.lat !== "number") {
+      throw new ValidationError("location.lat must be a number.");
+    }
+
+    if (typeof rawLocation.lng !== "number") {
+      throw new ValidationError("location.lng must be a number.");
+    }
+
+    if (
+      typeof rawLocation.addressString !== "undefined" &&
+      typeof rawLocation.addressString !== "string"
+    ) {
+      throw new ValidationError("location.addressString must be a string.");
+    }
+
+    const location: CreateOrganizationInput["location"] = {
+      lat: rawLocation.lat,
+      lng: rawLocation.lng
+    };
+
+    if (typeof rawLocation.addressString === "string") {
+      const trimmedAddress = rawLocation.addressString.trim();
+
+      if (trimmedAddress.length > 0) {
+        location.addressString = trimmedAddress;
+      }
     }
 
     return {
       name: body.name,
-      address: body.address
+      location
     };
   }
 }

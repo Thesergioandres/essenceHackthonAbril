@@ -2,6 +2,7 @@ import { CreateOrganizationUseCase } from "./application/use-cases/CreateOrganiz
 import { CreateDonationUseCase } from "./application/use-cases/CreateDonationUseCase";
 import { GetSystemHealthUseCase } from "./application/use-cases/GetSystemHealthUseCase";
 import { ListTenantDonationsUseCase } from "./application/use-cases/ListTenantDonationsUseCase";
+import { UpdateDonationStatusUseCase } from "./application/use-cases/UpdateDonationStatusUseCase";
 import { createApp } from "./infrastructure/app";
 import { env } from "./infrastructure/config/env";
 import { connectMongoDb } from "./infrastructure/config/mongo/mongooseConnection";
@@ -36,9 +37,11 @@ const bootstrap = async (): Promise<void> => {
     organizationRepository
   );
   const listTenantDonationsUseCase = new ListTenantDonationsUseCase(donationRepository);
+  const updateDonationStatusUseCase = new UpdateDonationStatusUseCase(donationRepository);
   const donationController = new DonationController(
     createDonationUseCase,
-    listTenantDonationsUseCase
+    listTenantDonationsUseCase,
+    updateDonationStatusUseCase
   );
   const tenantAuthMiddleware = createTenantAuthMiddleware(organizationRepository);
 

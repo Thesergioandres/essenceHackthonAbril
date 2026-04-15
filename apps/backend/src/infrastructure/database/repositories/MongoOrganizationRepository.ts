@@ -1,5 +1,8 @@
 import { isValidObjectId } from "mongoose";
-import { Organization } from "../../../domain/entities/Organization";
+import {
+  Organization,
+  OrganizationLocation
+} from "../../../domain/entities/Organization";
 import { RepositoryError } from "../../../domain/errors/RepositoryError";
 import {
   CreateOrganizationRecord,
@@ -10,11 +13,28 @@ import {
   OrganizationModel
 } from "../models/OrganizationModel";
 
+const mapLocation = (document: OrganizationDocument): OrganizationLocation => {
+  const normalized: OrganizationLocation = {
+    lat: document.location.lat,
+    lng: document.location.lng
+  };
+
+  if (typeof document.location.addressString === "string") {
+    const trimmedAddress = document.location.addressString.trim();
+
+    if (trimmedAddress.length > 0) {
+      normalized.addressString = trimmedAddress;
+    }
+  }
+
+  return normalized;
+};
+
 const mapOrganization = (document: OrganizationDocument): Organization => {
   return {
     id: document.id,
     name: document.name,
-    address: document.address,
+    location: mapLocation(document),
     createdAt:
       document.createdAt instanceof Date ? document.createdAt : new Date(0)
   };
@@ -25,7 +45,13 @@ export class MongoOrganizationRepository implements IOrganizationRepository {
     try {
       const organization = await OrganizationModel.create({
         name: record.name,
-        address: record.address
+        location: {
+          lat: record.location.lat,
+          lng: record.location.lng,
+          ...(record.location.addressString
+            ? { addressString: record.location.addressString }
+            : {})
+        }
       });
 
       return mapOrganization(organization);

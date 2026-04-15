@@ -9,6 +9,9 @@ export interface DonationPersistence {
   quantity: number;
   status: DonationStatus;
   expirationDate: Date;
+  donorPhoto?: string;
+  pickupPhoto?: string;
+  deliveryPhoto?: string;
 }
 
 const donationSchema = new Schema<DonationPersistence>(
@@ -37,6 +40,18 @@ const donationSchema = new Schema<DonationPersistence>(
     expirationDate: {
       type: Date,
       required: true
+    },
+    donorPhoto: {
+      type: String,
+      required: false
+    },
+    pickupPhoto: {
+      type: String,
+      required: false
+    },
+    deliveryPhoto: {
+      type: String,
+      required: false
     }
   },
   {

@@ -1,9 +1,33 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTenant } from "@/application/hooks/useTenant";
+import { LocationPickerMap } from "@/infrastructure/ui/components/LocationPickerMap";
 
 export const BusinessSelector = (): JSX.Element => {
-  const { organizations, activeTenantId, setActiveTenantId, activeOrganization } = useTenant();
+  const {
+    organizations,
+    activeTenantId,
+    setActiveTenantId,
+    activeOrganization,
+    setActiveOrganizationLocation
+  } = useTenant();
+
+  const locationLabel = useMemo(() => {
+    if (typeof activeOrganization.location.addressString === "string") {
+      const trimmedAddress = activeOrganization.location.addressString.trim();
+
+      if (trimmedAddress.length > 0) {
+        return trimmedAddress;
+      }
+    }
+
+    return `${activeOrganization.location.lat.toFixed(5)}, ${activeOrganization.location.lng.toFixed(5)}`;
+  }, [
+    activeOrganization.location.addressString,
+    activeOrganization.location.lat,
+    activeOrganization.location.lng
+  ]);
 
   return (
     <div className="rounded-2xl border border-slate-900/10 bg-white/85 px-4 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -25,9 +49,15 @@ export const BusinessSelector = (): JSX.Element => {
         </select>
 
         <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
-          {activeOrganization.address}
+          {locationLabel}
         </span>
       </div>
+
+      <LocationPickerMap
+        className="mt-4"
+        selectedLocation={activeOrganization.location}
+        onLocationSelect={setActiveOrganizationLocation}
+      />
     </div>
   );
 };

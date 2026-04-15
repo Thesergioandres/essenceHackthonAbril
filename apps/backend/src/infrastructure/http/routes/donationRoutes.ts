@@ -10,6 +10,7 @@ export const createDonationRoutes = (
   router.use("/donations", tenantAuthMiddleware);
   router.post("/donations", donationController.create);
   router.get("/donations", donationController.listByTenant);
+  router.patch("/donations/:id/status", donationController.updateStatus);
 
   return router;
 };

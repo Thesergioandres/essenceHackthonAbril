@@ -1,8 +1,10 @@
+import { isValidObjectId } from "mongoose";
 import { Donation } from "../../../domain/entities/Donation";
 import { RepositoryError } from "../../../domain/errors/RepositoryError";
 import {
   CreateDonationRecord,
-  IDonationRepository
+  IDonationRepository,
+  UpdateDonationStatusRecord
 } from "../../../domain/repositories/IDonationRepository";
 import { DonationDocument, DonationModel } from "../models/DonationModel";
 
@@ -13,7 +15,16 @@ const mapDonation = (document: DonationDocument): Donation => {
     title: document.title,
     quantity: document.quantity,
     status: document.status,
-    expirationDate: document.expirationDate
+    expirationDate: document.expirationDate,
+    ...(typeof document.donorPhoto === "string"
+      ? { donorPhoto: document.donorPhoto }
+      : {}),
+    ...(typeof document.pickupPhoto === "string"
+      ? { pickupPhoto: document.pickupPhoto }
+      : {}),
+    ...(typeof document.deliveryPhoto === "string"
+      ? { deliveryPhoto: document.deliveryPhoto }
+      : {})
   };
 };
 
@@ -25,7 +36,8 @@ export class MongoDonationRepository implements IDonationRepository {
         title: record.title,
         quantity: record.quantity,
         status: record.status,
-        expirationDate: record.expirationDate
+        expirationDate: record.expirationDate,
+        ...(record.donorPhoto ? { donorPhoto: record.donorPhoto } : {})
       });
 
       return mapDonation(donation);
@@ -49,6 +61,40 @@ export class MongoDonationRepository implements IDonationRepository {
         error instanceof Error ? error.message : "Unknown persistence failure";
 
       throw new RepositoryError(`Donation query failed: ${message}`);
+    }
+  }
+
+  async updateStatus(record: UpdateDonationStatusRecord): Promise<Donation | null> {
+    try {
+      if (!isValidObjectId(record.donationId)) {
+        return null;
+      }
+
+      const photoField =
+        record.status === "in_transit" ? "pickupPhoto" : "deliveryPhoto";
+
+      const updatedDonation = await DonationModel.findOneAndUpdate(
+        {
+          _id: record.donationId,
+          tenantId: record.tenantId
+        },
+        {
+          $set: {
+            status: record.status,
+            [photoField]: record.photo
+          }
+        },
+        {
+          new: true
+        }
+      ).exec();
+
+      return updatedDonation ? mapDonation(updatedDonation) : null;
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unknown persistence failure";
+
+      throw new RepositoryError(`Donation status update failed: ${message}`);
     }
   }
 }

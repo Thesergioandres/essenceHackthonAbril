@@ -9,7 +9,22 @@ export interface CreateDonationInput {
   title: string;
   quantity: number;
   expirationDate: Date;
+  donorPhoto?: string;
 }
+
+const normalizeOptionalPhoto = (photo: string | undefined): string | undefined => {
+  if (typeof photo !== "string") {
+    return undefined;
+  }
+
+  const trimmedPhoto = photo.trim();
+
+  if (trimmedPhoto.length === 0) {
+    return undefined;
+  }
+
+  return trimmedPhoto;
+};
 
 export class CreateDonationUseCase {
   constructor(
@@ -43,12 +58,15 @@ export class CreateDonationUseCase {
       throw new NotFoundError("Tenant organization not found.");
     }
 
+    const donorPhoto = normalizeOptionalPhoto(input.donorPhoto);
+
     return this.donationRepository.create({
       tenantId,
       title,
       quantity: input.quantity,
       status: "pending",
-      expirationDate: input.expirationDate
+      expirationDate: input.expirationDate,
+      ...(donorPhoto ? { donorPhoto } : {})
     });
   }
 }
