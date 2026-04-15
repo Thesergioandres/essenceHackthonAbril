@@ -67,10 +67,10 @@ const DashboardPage = (): JSX.Element => {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             Metricas FAO
           </p>
-          <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-on-surface">
+          <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-on-surface dark:text-zinc-50">
             Impacto Planetario
           </h1>
-          <p className="mt-2 text-sm text-on-surface-variant">
+          <p className="mt-2 text-sm text-on-surface-variant dark:text-zinc-300">
             Organizacion activa: {activeOrganization.name}
           </p>
         </div>
@@ -136,16 +136,16 @@ const DashboardPage = (): JSX.Element => {
       </section>
 
       <section className="mt-6 grid gap-6 lg:grid-cols-12">
-        <article className="rounded-[2rem] border border-slate-900/10 bg-surface-container-lowest p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] lg:col-span-8">
+        <article className="rounded-[2rem] border border-zinc-200/80 bg-surface-container-lowest p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-on-surface">Kg desperdicio vs Kg salvados</h2>
-              <p className="text-sm text-on-surface-variant">
+              <h2 className="text-2xl font-bold text-on-surface dark:text-zinc-50">Kg desperdicio vs Kg salvados</h2>
+              <p className="text-sm text-on-surface-variant dark:text-zinc-300">
                 Comparativa semanal de recuperacion y desperdicio evitado.
               </p>
             </div>
 
-            <div className="flex gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+            <div className="flex gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
               <span className="inline-flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-primary" /> Salvados
               </span>
@@ -168,7 +168,7 @@ const DashboardPage = (): JSX.Element => {
 
               return (
                 <div key={point.day} className="flex flex-col items-center gap-2">
-                  <div className="flex h-48 w-full items-end gap-1 rounded-2xl bg-surface-container-low px-1.5 pb-1.5">
+                  <div className="flex h-48 w-full items-end gap-1 rounded-2xl bg-surface-container-low px-1.5 pb-1.5 dark:bg-zinc-800">
                     <div
                       className="w-1/2 rounded-lg bg-primary"
                       style={{ height: `${rescuedHeightPercent}%` }}
@@ -178,7 +178,7 @@ const DashboardPage = (): JSX.Element => {
                       style={{ height: `${wasteHeightPercent}%` }}
                     />
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant dark:text-zinc-400">
                     {point.day}
                   </p>
                 </div>
@@ -187,9 +187,9 @@ const DashboardPage = (): JSX.Element => {
           </div>
         </article>
 
-        <article className="rounded-[2rem] border border-slate-900/10 bg-surface-container-low p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] lg:col-span-4">
+        <article className="rounded-[2rem] border border-zinc-200/80 bg-surface-container-low p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-on-surface">Ultimos rescates</h2>
+            <h2 className="text-xl font-bold text-on-surface dark:text-zinc-50">Ultimos rescates</h2>
             <Link
               href="/history"
               className="text-xs font-bold uppercase tracking-[0.14em] text-primary"
@@ -200,17 +200,17 @@ const DashboardPage = (): JSX.Element => {
 
           <div className="mt-4 space-y-3">
             {recentDonations.length === 0 ? (
-              <p className="rounded-2xl bg-surface-container-lowest px-4 py-4 text-sm text-slate-500">
+              <p className="rounded-2xl bg-surface-container-lowest px-4 py-4 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
                 Aun no hay donaciones registradas para este tenant.
               </p>
             ) : (
               recentDonations.map((donation) => (
                 <article
                   key={donation.id}
-                  className="rounded-2xl bg-surface-container-lowest px-4 py-3 shadow-sm"
+                  className="rounded-2xl bg-surface-container-lowest px-4 py-3 shadow-sm dark:bg-zinc-800"
                 >
-                  <p className="text-sm font-bold text-on-surface">{donation.title}</p>
-                  <p className="mt-1 text-xs text-on-surface-variant">{donation.quantity} kg</p>
+                  <p className="text-sm font-bold text-on-surface dark:text-zinc-50">{donation.title}</p>
+                  <p className="mt-1 text-xs text-on-surface-variant dark:text-zinc-300">{donation.quantity} kg</p>
                   <span className="mt-2 inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
                     {donation.status}
                   </span>

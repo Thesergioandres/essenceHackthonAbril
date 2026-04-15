@@ -54,12 +54,12 @@ export const BusinessSelector = ({
   const rootClassName =
     className ??
     (variant === "compact"
-      ? "rounded-2xl border border-slate-900/10 bg-white/85 px-3 py-2 shadow-[0_12px_32px_rgba(15,23,42,0.08)] backdrop-blur"
-      : "rounded-2xl border border-slate-900/10 bg-white/85 px-4 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.08)] backdrop-blur");
+      ? "rounded-2xl border border-zinc-200/80 bg-white/85 px-3 py-2 shadow-[0_12px_32px_rgba(15,23,42,0.08)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85"
+      : "rounded-2xl border border-zinc-200/80 bg-white/85 px-4 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.08)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85");
 
   return (
     <div className={rootClassName}>
-      <p className="font-display text-[11px] uppercase tracking-[0.2em] text-slate-500">
+      <p className="font-display text-[11px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
         Tenant activo
       </p>
 
@@ -71,7 +71,7 @@ export const BusinessSelector = ({
         <select
           value={activeTenantId}
           onChange={(event) => setActiveTenantId(event.target.value)}
-          className={`rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-ink outline-none ring-0 focus:border-accent ${
+          className={`rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-ink outline-none ring-0 focus:border-accent dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 ${
             variant === "compact" ? "w-full" : "min-w-56"
           }`}
           aria-label="Seleccionar organizacion"
@@ -91,13 +91,13 @@ export const BusinessSelector = ({
       </div>
 
       {variant === "compact" ? (
-        <p className="mt-1 text-[11px] font-medium text-slate-500">{locationLabel}</p>
+        <p className="mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{locationLabel}</p>
       ) : null}
 
       {showRoleSwitch ? (
         <div className="mt-4">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Modo Operativo</p>
-          <div className="mt-2 inline-flex rounded-xl border border-slate-300 bg-slate-100 p-1">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Modo Operativo</p>
+          <div className="mt-2 inline-flex rounded-xl border border-zinc-300 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-800">
             {DASHBOARD_ROLES.map((role) => {
               const isActive = activeUserType === role.value;
 
@@ -111,7 +111,7 @@ export const BusinessSelector = ({
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                     isActive
                       ? "bg-accent text-white shadow-[0_8px_24px_rgba(15,118,110,0.28)]"
-                      : "text-slate-600 hover:text-ink"
+                      : "text-zinc-600 hover:text-ink dark:text-zinc-300 dark:hover:text-zinc-50"
                   }`}
                 >
                   {role.label}

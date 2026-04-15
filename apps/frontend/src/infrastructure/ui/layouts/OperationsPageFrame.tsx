@@ -40,8 +40,8 @@ export const OperationsPageFrame = ({
 
   if (!hasSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface px-6 py-10">
-        <p className="rounded-2xl border border-slate-900/10 bg-white/90 px-5 py-3 text-sm font-semibold text-on-surface shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-surface px-6 py-10 dark:bg-zinc-950">
+        <p className="rounded-2xl border border-zinc-200/80 bg-white/90 px-5 py-3 text-sm font-semibold text-on-surface shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50">
           Preparando contexto de sesion...
         </p>
       </div>
@@ -49,7 +49,7 @@ export const OperationsPageFrame = ({
   }
 
   return (
-    <div className="relative min-h-screen bg-surface">
+    <div className="relative min-h-screen bg-surface dark:bg-zinc-950">
       <OperationsTopBar
         sectionLabel={sectionLabel}
         showRoleSwitch={showRoleSwitch}

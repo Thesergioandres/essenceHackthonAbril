@@ -6,9 +6,9 @@ import { useNotifications } from "@/application/hooks/useNotifications";
 import { useTenant } from "@/application/hooks/useTenant";
 
 const severityTone: Record<NotificationSeverity, string> = {
-  info: "bg-sky-100 text-sky-700",
-  warning: "bg-amber-100 text-amber-700",
-  critical: "bg-red-100 text-red-700"
+  info: "bg-sky-100 text-sky-700 dark:bg-sky-900/35 dark:text-sky-300",
+  warning: "bg-amber-100 text-amber-700 dark:bg-amber-900/35 dark:text-amber-300",
+  critical: "bg-red-100 text-red-700 dark:bg-red-900/35 dark:text-red-300"
 };
 
 export const NotificationBell = (): JSX.Element => {
@@ -62,7 +62,7 @@ export const NotificationBell = (): JSX.Element => {
         onClick={() => {
           setIsOpen((current) => !current);
         }}
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-[0_12px_28px_rgba(15,23,42,0.08)] transition hover:border-accent hover:text-accent"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-700 shadow-[0_12px_28px_rgba(15,23,42,0.08)] transition hover:border-accent hover:text-accent dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         aria-label="Abrir panel de notificaciones"
       >
         <svg
@@ -86,20 +86,20 @@ export const NotificationBell = (): JSX.Element => {
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 z-20 mt-3 w-[22rem] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_24px_64px_rgba(15,23,42,0.18)]">
+        <div className="absolute right-0 z-20 mt-3 w-[22rem] rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_24px_64px_rgba(15,23,42,0.18)] dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-display text-xs uppercase tracking-[0.2em] text-slate-500">
+              <p className="font-display text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
                 Notificaciones
               </p>
-              <p className="mt-1 text-sm font-semibold text-ink">{unreadLabel}</p>
+              <p className="mt-1 text-sm font-semibold text-ink dark:text-zinc-50">{unreadLabel}</p>
             </div>
             <button
               type="button"
               onClick={() => {
                 void refetch();
               }}
-              className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-accent hover:text-accent"
+              className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-600 transition hover:border-accent hover:text-accent dark:border-zinc-700 dark:text-zinc-300"
             >
               Actualizar
             </button>
@@ -107,17 +107,17 @@ export const NotificationBell = (): JSX.Element => {
 
           <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
             {isLoading ? (
-              <p className="rounded-xl bg-slate-50 px-3 py-4 text-sm text-slate-500">
+              <p className="rounded-xl bg-zinc-100 px-3 py-4 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
                 Cargando notificaciones...
               </p>
             ) : null}
 
             {isError && !isLoading ? (
-              <p className="rounded-xl bg-red-50 px-3 py-4 text-sm text-red-600">{error}</p>
+              <p className="rounded-xl bg-red-50 px-3 py-4 text-sm text-red-600 dark:bg-red-950/35 dark:text-red-300">{error}</p>
             ) : null}
 
             {!isLoading && !isError && notifications.length === 0 ? (
-              <p className="rounded-xl bg-slate-50 px-3 py-4 text-sm text-slate-500">
+              <p className="rounded-xl bg-zinc-100 px-3 py-4 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
                 No hay notificaciones por ahora.
               </p>
             ) : null}
@@ -129,21 +129,21 @@ export const NotificationBell = (): JSX.Element => {
                       key={notification.id}
                       className={`rounded-xl border px-3 py-3 ${
                         notification.isRead
-                          ? "border-slate-200 bg-white"
-                          : "border-amber-200 bg-amber-50/60"
+                          ? "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                          : "border-amber-200 bg-amber-50/60 dark:border-amber-700/60 dark:bg-amber-900/20"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-ink">{notification.title}</p>
+                        <p className="text-sm font-semibold text-ink dark:text-zinc-50">{notification.title}</p>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${severityTone[notification.severity]}`}
                         >
                           {notification.severity}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-slate-600">{notification.message}</p>
+                      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{notification.message}</p>
                       <div className="mt-2 flex items-center justify-between gap-3">
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
                           {new Date(notification.createdAt).toLocaleString("es-CO")}
                         </span>
                         {!notification.isRead ? (
@@ -157,7 +157,7 @@ export const NotificationBell = (): JSX.Element => {
                             Marcar leida
                           </button>
                         ) : (
-                          <span className="text-[11px] font-medium text-slate-400">Leida</span>
+                          <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">Leida</span>
                         )}
                       </div>
                     </article>

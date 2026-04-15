@@ -47,7 +47,7 @@ export const OperationsBottomNav = (): JSX.Element => {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-900/10 bg-white/90 pb-safe backdrop-blur-xl">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200/80 bg-white/90 pb-safe backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/90">
       <div className="mx-auto flex h-20 max-w-2xl items-center justify-around px-2">
         {NAV_ITEMS.map((item) => {
           const isActive = item.matches(pathname);
@@ -58,8 +58,8 @@ export const OperationsBottomNav = (): JSX.Element => {
               href={item.href}
               className={`flex min-w-14 flex-col items-center justify-center rounded-xl px-2 py-1.5 transition ${
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-slate-500 hover:text-primary"
+                  ? "bg-primary/15 text-primary dark:bg-primary/20"
+                  : "text-zinc-500 hover:text-primary dark:text-zinc-400"
               }`}
             >
               <span

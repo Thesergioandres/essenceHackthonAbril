@@ -2,7 +2,33 @@ import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import type { ReactNode } from "react";
 import GlobalAnimationLayout from "@/infrastructure/ui/layouts/GlobalAnimationLayout";
+import { ThemeProvider } from "@/infrastructure/ui/theme/ThemeProvider";
 import "./globals.css";
+
+const themeInitializerScript = `
+(() => {
+  try {
+    const storageKey = "rura-theme";
+    const storedTheme = window.localStorage.getItem(storageKey);
+    const hasStoredTheme = storedTheme === "light" || storedTheme === "dark";
+    const resolvedTheme = hasStoredTheme
+      ? storedTheme
+      : window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+
+    const root = document.documentElement;
+    root.classList.toggle("dark", resolvedTheme === "dark");
+    root.style.colorScheme = resolvedTheme;
+
+    if (!hasStoredTheme) {
+      window.localStorage.setItem(storageKey, resolvedTheme);
+    }
+  } catch (error) {
+    // Ignore initialization failures from restricted browser storage contexts.
+  }
+})();
+`;
 
 const displayFont = Manrope({
   subsets: ["latin"],
@@ -27,15 +53,22 @@ interface RootLayoutProps {
 
 const RootLayout = ({ children }: RootLayoutProps): JSX.Element => {
   return (
-    <html lang="es" className={`${displayFont.variable} ${bodyFont.variable}`}>
+    <html
+      lang="es"
+      suppressHydrationWarning
+      className={`${displayFont.variable} ${bodyFont.variable}`}
+    >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitializerScript }} />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1"
         />
       </head>
       <body className="min-h-screen bg-surface text-ink antialiased">
-        <GlobalAnimationLayout>{children}</GlobalAnimationLayout>
+        <ThemeProvider>
+          <GlobalAnimationLayout>{children}</GlobalAnimationLayout>
+        </ThemeProvider>
       </body>
     </html>
   );

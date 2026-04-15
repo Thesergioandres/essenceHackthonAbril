@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
   --rura-surface: #f8f9fa;
   --rura-primary: #006d37;
@@ -13,6 +13,10 @@
   --rura-tertiary: #006497;
   --rura-tertiary-container: #509fda;
   --rura-ink: #191c1d;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 * {
@@ -34,6 +38,15 @@ body {
     radial-gradient(circle at 90% 100%, rgba(80, 159, 218, 0.12), transparent 44%),
     linear-gradient(145deg, #f8f9fa 0%, #eff3f5 55%, #f8f4eb 100%);
   color: var(--rura-ink);
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 12% 5%, rgba(5, 150, 105, 0.18), transparent 40%),
+    radial-gradient(circle at 90% 12%, rgba(249, 115, 22, 0.16), transparent 36%),
+    radial-gradient(circle at 85% 96%, rgba(59, 130, 246, 0.14), transparent 36%),
+    linear-gradient(155deg, #09090b 0%, #111827 55%, #18181b 100%);
+  color: #f4f4f5;
 }
 
 h1,

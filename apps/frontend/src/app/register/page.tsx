@@ -141,8 +141,8 @@ const RegisterPage = (): JSX.Element => {
 
   if (hasSession) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,#CFF6DE_0%,#F5FAF7_45%,#F2F4F7_100%)] px-6 py-12">
-        <p className="rounded-2xl border border-primary/20 bg-white/90 px-5 py-3 text-sm font-semibold text-on-surface shadow-sm">
+      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,#CFF6DE_0%,#F5FAF7_45%,#F2F4F7_100%)] px-6 py-12 dark:bg-[radial-gradient(circle_at_top_right,#0F2A1B_0%,#111827_45%,#09090B_100%)]">
+        <p className="rounded-2xl border border-primary/20 bg-white/90 px-5 py-3 text-sm font-semibold text-on-surface shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50">
           Redirigiendo al dashboard operativo...
         </p>
       </main>
@@ -150,34 +150,34 @@ const RegisterPage = (): JSX.Element => {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_20%_10%,#D8FBE6_0%,#F4F7FB_45%,#E9EFF5_100%)] px-6 py-10">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_20%_10%,#D8FBE6_0%,#F4F7FB_45%,#E9EFF5_100%)] px-6 py-10 dark:bg-[radial-gradient(circle_at_20%_10%,#103923_0%,#111827_45%,#09090B_100%)]">
       <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-12">
-        <section className="overflow-hidden rounded-[2rem] border border-slate-900/10 bg-white/90 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.1)] lg:col-span-5">
+        <section className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/90 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:border-zinc-800 dark:bg-zinc-900/90 lg:col-span-5">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Onboarding real</p>
-          <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-on-surface">
+          <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-on-surface dark:text-zinc-50">
             Activa RURA para demo en vivo
           </h1>
-          <p className="mt-3 text-sm text-on-surface-variant">
+          <p className="mt-3 text-sm text-on-surface-variant dark:text-zinc-300">
             Crea la organizacion y el usuario principal en un solo flujo. Al finalizar,
             quedas autenticado en el tenant automaticamente.
           </p>
 
-          <div className="mt-6 space-y-3 text-sm text-on-surface-variant">
-            <p className="rounded-xl bg-surface-container-low px-4 py-3">
+          <div className="mt-6 space-y-3 text-sm text-on-surface-variant dark:text-zinc-300">
+            <p className="rounded-xl bg-surface-container-low px-4 py-3 dark:bg-zinc-800">
               Paso 1: Crear organizacion (tenant).
             </p>
-            <p className="rounded-xl bg-surface-container-low px-4 py-3">
+            <p className="rounded-xl bg-surface-container-low px-4 py-3 dark:bg-zinc-800">
               Paso 2: Registrar usuario operativo.
             </p>
-            <p className="rounded-xl bg-surface-container-low px-4 py-3">
+            <p className="rounded-xl bg-surface-container-low px-4 py-3 dark:bg-zinc-800">
               Paso 3: Entrar directo al dashboard.
             </p>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-on-surface-variant dark:text-zinc-300">
             <Link
               href="/health"
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-on-surface"
+              className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-on-surface dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
             >
               Ver estado backend
             </Link>
@@ -185,7 +185,7 @@ const RegisterPage = (): JSX.Element => {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-900/10 bg-white/95 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.1)] lg:col-span-7">
+        <section className="rounded-[2rem] border border-zinc-200/80 bg-white/95 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:border-zinc-800 dark:bg-zinc-900/95 lg:col-span-7">
           <form className="space-y-6" onSubmit={(event) => void handleSubmit(event)}>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
@@ -193,7 +193,7 @@ const RegisterPage = (): JSX.Element => {
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="sm:col-span-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Nombre del tenant
                   </span>
                   <input
@@ -205,13 +205,13 @@ const RegisterPage = (): JSX.Element => {
                       }));
                     }}
                     placeholder="Ej: Comedor Central Neiva"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     required
                   />
                 </label>
 
                 <label className="sm:col-span-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Direccion
                   </span>
                   <input
@@ -223,12 +223,12 @@ const RegisterPage = (): JSX.Element => {
                       }));
                     }}
                     placeholder="Ej: Carrera 5 #14-24, Neiva"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                   />
                 </label>
 
                 <label>
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Latitud
                   </span>
                   <input
@@ -241,13 +241,13 @@ const RegisterPage = (): JSX.Element => {
                         organizationLat: event.target.value
                       }));
                     }}
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     required
                   />
                 </label>
 
                 <label>
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Longitud
                   </span>
                   <input
@@ -260,13 +260,13 @@ const RegisterPage = (): JSX.Element => {
                         organizationLng: event.target.value
                       }));
                     }}
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     required
                   />
                 </label>
 
                 <label className="sm:col-span-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Ubicacion visual
                   </span>
                   <LocationPickerMap
@@ -295,7 +295,7 @@ const RegisterPage = (): JSX.Element => {
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label>
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Nombre
                   </span>
                   <input
@@ -307,13 +307,13 @@ const RegisterPage = (): JSX.Element => {
                       }));
                     }}
                     placeholder="Ej: Laura Prieto"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     required
                   />
                 </label>
 
                 <label>
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Correo
                   </span>
                   <input
@@ -326,13 +326,13 @@ const RegisterPage = (): JSX.Element => {
                       }));
                     }}
                     placeholder="nombre@organizacion.org"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     required
                   />
                 </label>
 
                 <label className="sm:col-span-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Rol operativo inicial
                   </span>
                   <select
@@ -343,7 +343,7 @@ const RegisterPage = (): JSX.Element => {
                         userRole: event.target.value as RegisterFormState["userRole"]
                       }));
                     }}
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-on-surface outline-none focus:border-primary"
+                    className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-on-surface outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                   >
                     <option value="foundation">Fundacion</option>
                     <option value="volunteer">Voluntario</option>
