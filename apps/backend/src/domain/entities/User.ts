@@ -16,4 +16,5 @@ export interface User {
   role: UserRole;
   profileType: UserProfileType;
   penalties: number;
+  password_hash?: string;
 }

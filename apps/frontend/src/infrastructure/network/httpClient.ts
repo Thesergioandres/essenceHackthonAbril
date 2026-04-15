@@ -3,8 +3,10 @@ const TENANT_STORAGE_KEY = "rura.activeTenantId";
 const TENANT_GLOBAL_KEY = "__RURA_ACTIVE_TENANT_ID__";
 const USER_ID_STORAGE_KEY = "rura.activeUserId";
 const USER_TYPE_STORAGE_KEY = "rura.activeUserType";
+const AUTH_TOKEN_STORAGE_KEY = "rura.authToken";
 const USER_ID_GLOBAL_KEY = "__RURA_ACTIVE_USER_ID__";
 const USER_TYPE_GLOBAL_KEY = "__RURA_ACTIVE_USER_TYPE__";
+const AUTH_TOKEN_GLOBAL_KEY = "__RURA_AUTH_TOKEN__";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -15,6 +17,7 @@ interface RequestOptions<TBody = unknown> {
   tenantId?: string;
   userId?: string;
   userType?: string;
+  authToken?: string;
   body?: TBody;
   query?: Record<string, QueryParamValue>;
   headers?: Record<string, string>;
@@ -27,6 +30,7 @@ declare global {
     __RURA_ACTIVE_TENANT_ID__?: string;
     __RURA_ACTIVE_USER_ID__?: string;
     __RURA_ACTIVE_USER_TYPE__?: string;
+    __RURA_AUTH_TOKEN__?: string;
   }
 }
 
@@ -176,10 +180,49 @@ export const clearRuntimeSession = (): void => {
   delete window[TENANT_GLOBAL_KEY];
   delete window[USER_ID_GLOBAL_KEY];
   delete window[USER_TYPE_GLOBAL_KEY];
+  delete window[AUTH_TOKEN_GLOBAL_KEY];
 
   window.localStorage.removeItem(TENANT_STORAGE_KEY);
   window.localStorage.removeItem(USER_ID_STORAGE_KEY);
   window.localStorage.removeItem(USER_TYPE_STORAGE_KEY);
+  window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+};
+
+export const getAuthTokenFromRuntime = (): string | undefined => {
+  if (!isBrowser()) {
+    return undefined;
+  }
+
+  const tokenFromWindow = window[AUTH_TOKEN_GLOBAL_KEY];
+
+  if (tokenFromWindow && tokenFromWindow.length > 0) {
+    return tokenFromWindow;
+  }
+
+  const tokenFromStorage = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+
+  if (tokenFromStorage && tokenFromStorage.length > 0) {
+    return tokenFromStorage;
+  }
+
+  return undefined;
+};
+
+export const setAuthTokenInRuntime = (token: string): void => {
+  if (!isBrowser()) {
+    return;
+  }
+
+  const normalizedToken = token.trim();
+
+  if (normalizedToken.length === 0) {
+    delete window[AUTH_TOKEN_GLOBAL_KEY];
+    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    return;
+  }
+
+  window[AUTH_TOKEN_GLOBAL_KEY] = normalizedToken;
+  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, normalizedToken);
 };
 
 const request = async <TResponse, TBody = unknown>(
@@ -191,6 +234,7 @@ const request = async <TResponse, TBody = unknown>(
     tenantId,
     userId,
     userType,
+    authToken,
     body,
     query,
     headers,
@@ -203,6 +247,7 @@ const request = async <TResponse, TBody = unknown>(
   const runtimeUserContext = getUserContextFromRuntime();
   const resolvedUserId = userId ?? runtimeUserContext.userId;
   const resolvedUserType = userType ?? runtimeUserContext.userType;
+  const resolvedAuthToken = authToken ?? getAuthTokenFromRuntime();
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
   const response = await fetch(buildUrl(path, query), {
@@ -218,6 +263,11 @@ const request = async <TResponse, TBody = unknown>(
         ? {
             "x-user-type": resolvedUserType,
             "x-user-role": resolvedUserType
+          }
+        : {}),
+      ...(resolvedAuthToken
+        ? {
+            Authorization: `Bearer ${resolvedAuthToken}`
           }
         : {}),
       ...headers

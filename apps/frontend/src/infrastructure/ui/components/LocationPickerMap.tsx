@@ -6,7 +6,7 @@ import {
   Map,
   type MapMouseEvent
 } from "@vis.gl/react-google-maps";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { OrganizationLocation } from "@/domain/models/Organization";
 import { useTheme } from "@/infrastructure/ui/theme/ThemeProvider";
 
@@ -14,6 +14,20 @@ interface LocationPickerMapProps {
   selectedLocation: OrganizationLocation;
   onLocationSelect: (location: OrganizationLocation) => void;
   className?: string;
+}
+
+interface LatLngLiteral {
+  lat: number;
+  lng: number;
+}
+
+interface GoogleGeocodeResult {
+  formatted_address?: string;
+}
+
+interface GoogleGeocodeResponse {
+  results?: GoogleGeocodeResult[];
+  status?: string;
 }
 
 const NEIVA_DEFAULT_CENTER = {
@@ -38,6 +52,102 @@ const getSafeCoordinate = (
   return value;
 };
 
+const toCoordinateText = (coordinate: number): string => {
+  return coordinate.toFixed(5);
+};
+
+const parseLatLngFromUnknown = (value: unknown): LatLngLiteral | null => {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+
+  const maybeLatLng = value as {
+    lat?: unknown;
+    lng?: unknown;
+  };
+
+  const latValue =
+    typeof maybeLatLng.lat === "function"
+      ? (maybeLatLng.lat as () => unknown)()
+      : maybeLatLng.lat;
+  const lngValue =
+    typeof maybeLatLng.lng === "function"
+      ? (maybeLatLng.lng as () => unknown)()
+      : maybeLatLng.lng;
+
+  if (typeof latValue !== "number" || typeof lngValue !== "number") {
+    return null;
+  }
+
+  if (!Number.isFinite(latValue) || !Number.isFinite(lngValue)) {
+    return null;
+  }
+
+  return {
+    lat: latValue,
+    lng: lngValue
+  };
+};
+
+const extractCoordinatesFromEvent = (event: unknown): LatLngLiteral | null => {
+  if (typeof event !== "object" || event === null) {
+    return null;
+  }
+
+  const eventRecord = event as {
+    detail?: {
+      latLng?: unknown;
+    };
+    latLng?: unknown;
+  };
+
+  const fromDetail = parseLatLngFromUnknown(eventRecord.detail?.latLng);
+
+  if (fromDetail) {
+    return fromDetail;
+  }
+
+  return parseLatLngFromUnknown(eventRecord.latLng);
+};
+
+const reverseGeocodeCoordinates = async (
+  coordinates: LatLngLiteral
+): Promise<string | null> => {
+  if (GOOGLE_MAPS_API_KEY.length === 0) {
+    return null;
+  }
+
+  const geocodeUrl = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+  geocodeUrl.searchParams.set("latlng", `${coordinates.lat},${coordinates.lng}`);
+  geocodeUrl.searchParams.set("key", GOOGLE_MAPS_API_KEY);
+  geocodeUrl.searchParams.set("language", "es");
+  geocodeUrl.searchParams.set("region", "co");
+
+  const response = await fetch(geocodeUrl.toString(), {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as GoogleGeocodeResponse;
+
+  if (payload.status !== "OK" || !Array.isArray(payload.results)) {
+    return null;
+  }
+
+  const primaryResult = payload.results[0];
+
+  if (!primaryResult || typeof primaryResult.formatted_address !== "string") {
+    return null;
+  }
+
+  const normalizedAddress = primaryResult.formatted_address.trim();
+  return normalizedAddress.length > 0 ? normalizedAddress : null;
+};
+
 const resolveLocationLabel = (location: OrganizationLocation): string => {
   if (typeof location.addressString === "string") {
     const trimmedAddress = location.addressString.trim();
@@ -55,7 +165,13 @@ export const LocationPickerMap = ({
   onLocationSelect,
   className
 }: LocationPickerMapProps): JSX.Element => {
+<<<<<<< HEAD
   const { theme } = useTheme();
+=======
+  const [isResolvingAddress, setIsResolvingAddress] = useState<boolean>(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const latestSelectionId = useRef<number>(0);
+>>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
 
   const markerPosition = useMemo(() => {
     return {
@@ -64,6 +180,7 @@ export const LocationPickerMap = ({
     };
   }, [selectedLocation.lat, selectedLocation.lng]);
 
+<<<<<<< HEAD
   const mapId =
     theme === "dark" && GOOGLE_MAPS_MAP_ID_DARK.length > 0
       ? GOOGLE_MAPS_MAP_ID_DARK
@@ -72,25 +189,74 @@ export const LocationPickerMap = ({
   const handleMapClick = useCallback(
     (event: MapMouseEvent): void => {
       if (!event.detail.latLng) {
+=======
+  const updateLocation = useCallback(
+    async (coordinates: LatLngLiteral): Promise<void> => {
+      const selectionId = latestSelectionId.current + 1;
+      latestSelectionId.current = selectionId;
+
+      setLocationError(null);
+      setIsResolvingAddress(true);
+
+      let resolvedAddress: string | null = null;
+
+      try {
+        resolvedAddress = await reverseGeocodeCoordinates(coordinates);
+      } finally {
+        if (latestSelectionId.current !== selectionId) {
+          return;
+        }
+
+        setIsResolvingAddress(false);
+      }
+
+      if (latestSelectionId.current !== selectionId) {
+>>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
         return;
       }
 
-      const nextLocation: OrganizationLocation = {
-        lat: event.detail.latLng.lat,
-        lng: event.detail.latLng.lng
-      };
-
-      if (typeof selectedLocation.addressString === "string") {
-        const trimmedAddress = selectedLocation.addressString.trim();
-
-        if (trimmedAddress.length > 0) {
-          nextLocation.addressString = trimmedAddress;
-        }
+      if (!resolvedAddress) {
+        setLocationError("No se pudo resolver la direccion automaticamente.");
       }
 
-      onLocationSelect(nextLocation);
+      onLocationSelect({
+        lat: coordinates.lat,
+        lng: coordinates.lng,
+        ...(resolvedAddress
+          ? { addressString: resolvedAddress }
+          : typeof selectedLocation.addressString === "string" &&
+              selectedLocation.addressString.trim().length > 0
+            ? { addressString: selectedLocation.addressString.trim() }
+            : {})
+      });
     },
     [onLocationSelect, selectedLocation.addressString]
+  );
+
+  const handleMapClick = useCallback(
+    (event: MapMouseEvent): void => {
+      const coordinates = extractCoordinatesFromEvent(event);
+
+      if (!coordinates) {
+        return;
+      }
+
+      void updateLocation(coordinates);
+    },
+    [updateLocation]
+  );
+
+  const handleMarkerDragEnd = useCallback(
+    (event: unknown): void => {
+      const coordinates = extractCoordinatesFromEvent(event);
+
+      if (!coordinates) {
+        return;
+      }
+
+      void updateLocation(coordinates);
+    },
+    [updateLocation]
   );
 
   const locationLabel = useMemo(() => {
@@ -102,8 +268,13 @@ export const LocationPickerMap = ({
   if (GOOGLE_MAPS_API_KEY.length === 0) {
     return (
       <div className={rootClassName}>
+<<<<<<< HEAD
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/25 dark:text-amber-300">
           Configura NEXT_PUBLIC_GOOGLE_MAPS_API_KEY para habilitar el selector de mapa.
+=======
+        <div className="rounded-3xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
+          El mapa no esta disponible en este entorno.
+>>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
         </div>
         <p className="text-xs text-zinc-600 dark:text-zinc-300">Ubicacion actual: {locationLabel}</p>
       </div>
@@ -112,7 +283,11 @@ export const LocationPickerMap = ({
 
   return (
     <div className={rootClassName}>
+<<<<<<< HEAD
       <div className="h-56 overflow-hidden rounded-2xl border border-zinc-300 dark:border-zinc-700">
+=======
+      <div className="h-72 overflow-hidden rounded-3xl border border-slate-300 shadow-[0_14px_32px_rgba(15,23,42,0.12)]">
+>>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
             defaultCenter={NEIVA_DEFAULT_CENTER}
@@ -123,15 +298,33 @@ export const LocationPickerMap = ({
             mapId={mapId}
             onClick={handleMapClick}
           >
-            <AdvancedMarker position={markerPosition} title="Ubicacion del tenant" />
+            <AdvancedMarker
+              position={markerPosition}
+              title="Ubicacion del tenant"
+              draggable
+              onDragEnd={handleMarkerDragEnd}
+            />
           </Map>
         </APIProvider>
       </div>
 
+<<<<<<< HEAD
       <p className="text-xs text-zinc-600 dark:text-zinc-300">Seleccion actual: {locationLabel}</p>
       <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
         Haz clic en el mapa para mover el marcador.
       </p>
+=======
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+        <p>
+          {isResolvingAddress
+            ? "Buscando direccion..."
+            : locationError ?? `Direccion: ${locationLabel}`}
+        </p>
+        <p className="font-semibold text-slate-500">
+          {toCoordinateText(markerPosition.lat)}, {toCoordinateText(markerPosition.lng)}
+        </p>
+      </div>
+>>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
     </div>
   );
 };

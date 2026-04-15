@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { Express, Request, RequestHandler, Response } from "express";
+import { AuthController } from "./http/controllers/AuthController";
 import { DonationController } from "./http/controllers/DonationController";
 import { HealthController } from "./http/controllers/HealthController";
 import { HistoryController } from "./http/controllers/HistoryController";
@@ -10,6 +11,7 @@ import { UrgentNeedController } from "./http/controllers/UrgentNeedController";
 import { UserController } from "./http/controllers/UserController";
 import { errorHandlerMiddleware } from "./http/middlewares/errorHandlerMiddleware";
 import { createDonationRoutes } from "./http/routes/donationRoutes";
+import { createAuthRoutes } from "./http/routes/authRoutes";
 import { createHealthRoutes } from "./http/routes/healthRoutes";
 import { createHistoryRoutes } from "./http/routes/historyRoutes";
 import { createImpactRoutes } from "./http/routes/impactRoutes";
@@ -20,6 +22,7 @@ import { createUserRoutes } from "./http/routes/userRoutes";
 
 interface CreateAppDependencies {
   healthController: HealthController;
+  authController: AuthController;
   organizationController: OrganizationController;
   donationController: DonationController;
   urgentNeedController: UrgentNeedController;
@@ -32,6 +35,7 @@ interface CreateAppDependencies {
 
 export const createApp = ({
   healthController,
+  authController,
   organizationController,
   donationController,
   urgentNeedController,
@@ -54,6 +58,7 @@ export const createApp = ({
   });
 
   app.use("/api", createHealthRoutes(healthController));
+  app.use("/api", createAuthRoutes(authController));
   app.use("/api", createOrganizationRoutes(organizationController));
   app.use("/api", createUserRoutes(userController));
   app.use("/api", createDonationRoutes(donationController, tenantAuthMiddleware));

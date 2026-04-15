@@ -1,12 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/application/hooks/useTenant";
+<<<<<<< HEAD
+import { OrganizationLocation } from "@/domain/models/Organization";
+import { login } from "@/infrastructure/network/authApi";
+import { setAuthTokenInRuntime } from "@/infrastructure/network/httpClient";
+=======
 import type { OrganizationLocation } from "@/domain/models/Organization";
 import { LocationPickerMap } from "@/infrastructure/ui/components/LocationPickerMap";
+>>>>>>> d1c1be03c3acffac9652993ee06ffb5cf0a93f7a
 import { createOrganization } from "@/infrastructure/network/organizationApi";
+import { LocationPickerMap } from "@/infrastructure/ui/components/LocationPickerMap";
 import { registerUser } from "@/infrastructure/network/userApi";
 
 interface RegisterFormState {
@@ -16,6 +23,8 @@ interface RegisterFormState {
   organizationLng: string;
   userName: string;
   userEmail: string;
+  userPassword: string;
+  userPasswordConfirmation: string;
   userRole: "foundation" | "volunteer" | "donor";
 }
 
@@ -26,8 +35,12 @@ const INITIAL_FORM_STATE: RegisterFormState = {
   organizationLng: "-75.2819",
   userName: "",
   userEmail: "",
+  userPassword: "",
+  userPasswordConfirmation: "",
   userRole: "foundation"
 };
+
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
 const resolveSafeNextPath = (value: string | null): string => {
   if (!value) {
@@ -43,6 +56,11 @@ const resolveSafeNextPath = (value: string | null): string => {
   return normalized;
 };
 
+const parseCoordinateOrFallback = (value: string, fallback: number): number => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 const RegisterPage = (): JSX.Element => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -51,6 +69,21 @@ const RegisterPage = (): JSX.Element => {
   const [formState, setFormState] = useState<RegisterFormState>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] =
+    useState<boolean>(false);
+
+  const selectedLocation = useMemo<OrganizationLocation>(() => {
+    const lat = parseCoordinateOrFallback(formState.organizationLat, 2.9273);
+    const lng = parseCoordinateOrFallback(formState.organizationLng, -75.2819);
+    const address = formState.organizationAddress.trim();
+
+    return {
+      lat,
+      lng,
+      ...(address.length > 0 ? { addressString: address } : {})
+    };
+  }, [formState.organizationAddress, formState.organizationLat, formState.organizationLng]);
 
   const nextPath = useMemo(() => {
     return resolveSafeNextPath(searchParams.get("next"));
@@ -84,6 +117,8 @@ const RegisterPage = (): JSX.Element => {
     const organizationAddress = formState.organizationAddress.trim();
     const userName = formState.userName.trim();
     const userEmail = formState.userEmail.trim().toLowerCase();
+    const userPassword = formState.userPassword.trim();
+    const userPasswordConfirmation = formState.userPasswordConfirmation.trim();
 
     const organizationLat = Number.parseFloat(formState.organizationLat);
     const organizationLng = Number.parseFloat(formState.organizationLng);
@@ -108,6 +143,18 @@ const RegisterPage = (): JSX.Element => {
       return;
     }
 
+    if (!PASSWORD_REGEX.test(userPassword)) {
+      setSubmitError(
+        "La contraseña debe tener al menos 8 caracteres e incluir una letra y un número."
+      );
+      return;
+    }
+
+    if (userPassword !== userPasswordConfirmation) {
+      setSubmitError("La confirmación de contraseña no coincide.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -120,15 +167,26 @@ const RegisterPage = (): JSX.Element => {
         }
       });
 
-      const user = await registerUser({
+      await registerUser({
         tenantId: organization.id,
         name: userName,
         email: userEmail,
+        password: userPassword,
         role: formState.userRole,
         profileType: formState.userRole === "donor" ? "natural_person" : "organization"
       });
 
-      bootstrapSession({ organization, user });
+      const session = await login({
+        email: userEmail,
+        password: userPassword,
+        tenantId: organization.id
+      });
+
+      setAuthTokenInRuntime(session.token);
+      bootstrapSession({
+        organization: session.organization,
+        user: session.user
+      });
       router.replace(nextPath);
     } catch (error: unknown) {
       const message =
@@ -150,6 +208,7 @@ const RegisterPage = (): JSX.Element => {
   }
 
   return (
+<<<<<<< HEAD
     <main className="min-h-screen bg-[radial-gradient(circle_at_20%_10%,#D8FBE6_0%,#F4F7FB_45%,#E9EFF5_100%)] px-6 py-10 dark:bg-[radial-gradient(circle_at_20%_10%,#103923_0%,#111827_45%,#09090B_100%)]">
       <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-12">
         <section className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/90 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:border-zinc-800 dark:bg-zinc-900/90 lg:col-span-5">
@@ -186,6 +245,15 @@ const RegisterPage = (): JSX.Element => {
         </section>
 
         <section className="rounded-[2rem] border border-zinc-200/80 bg-white/95 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.1)] dark:border-zinc-800 dark:bg-zinc-900/95 lg:col-span-7">
+=======
+    <main className="min-h-screen bg-[radial-gradient(circle_at_20%_10%,#D8FBE6_0%,#F4F7FB_45%,#E9EFF5_100%)] px-6 py-10">
+      <div className="mx-auto w-full max-w-4xl">
+        <section className="rounded-[2rem] border border-slate-900/10 bg-white/95 p-7 shadow-[0_24px_60px_rgba(15,23,42,0.1)] sm:p-9">
+          <h1 className="text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
+            Bienvenido a RURA
+          </h1>
+
+>>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
           <form className="space-y-6" onSubmit={(event) => void handleSubmit(event)}>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
@@ -211,7 +279,32 @@ const RegisterPage = (): JSX.Element => {
                 </label>
 
                 <label className="sm:col-span-2">
+<<<<<<< HEAD
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
+=======
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Ubicacion en mapa
+                  </span>
+                  <LocationPickerMap
+                    className="mt-2"
+                    selectedLocation={selectedLocation}
+                    onLocationSelect={(location) => {
+                      setFormState((current) => ({
+                        ...current,
+                        organizationLat: location.lat.toFixed(6),
+                        organizationLng: location.lng.toFixed(6),
+                        organizationAddress:
+                          typeof location.addressString === "string"
+                            ? location.addressString
+                            : current.organizationAddress
+                      }));
+                    }}
+                  />
+                </label>
+
+                <label className="sm:col-span-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+>>>>>>> 5b4324e0eab689febaaff0e763d497c243035126
                     Direccion
                   </span>
                   <input
@@ -227,6 +320,10 @@ const RegisterPage = (): JSX.Element => {
                   />
                 </label>
 
+<<<<<<< HEAD
+                <input type="hidden" name="organizationLat" value={formState.organizationLat} />
+                <input type="hidden" name="organizationLng" value={formState.organizationLng} />
+=======
                 <label>
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Latitud
@@ -286,6 +383,7 @@ const RegisterPage = (): JSX.Element => {
                     className="mt-2"
                   />
                 </label>
+>>>>>>> d1c1be03c3acffac9652993ee06ffb5cf0a93f7a
               </div>
             </div>
 
@@ -331,6 +429,78 @@ const RegisterPage = (): JSX.Element => {
                   />
                 </label>
 
+                <label>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Contraseña
+                  </span>
+                  <div className="mt-2 flex items-center overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-primary">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={formState.userPassword}
+                      onChange={(event) => {
+                        setFormState((current) => ({
+                          ...current,
+                          userPassword: event.target.value
+                        }));
+                      }}
+                      placeholder="Mínimo 8 caracteres"
+                      className="w-full px-4 py-3 text-sm text-on-surface outline-none"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPassword((current) => !current);
+                      }}
+                      className="mr-2 rounded-lg px-2 py-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        {showPassword ? "visibility_off" : "visibility"}
+                      </span>
+                    </button>
+                  </div>
+                </label>
+
+                <label className="sm:col-span-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Confirmar contraseña
+                  </span>
+                  <div className="mt-2 flex items-center overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-primary">
+                    <input
+                      type={showPasswordConfirmation ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={formState.userPasswordConfirmation}
+                      onChange={(event) => {
+                        setFormState((current) => ({
+                          ...current,
+                          userPasswordConfirmation: event.target.value
+                        }));
+                      }}
+                      placeholder="Repite tu contraseña"
+                      className="w-full px-4 py-3 text-sm text-on-surface outline-none"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPasswordConfirmation((current) => !current);
+                      }}
+                      className="mr-2 rounded-lg px-2 py-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={
+                        showPasswordConfirmation
+                          ? "Ocultar confirmación de contraseña"
+                          : "Mostrar confirmación de contraseña"
+                      }
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        {showPasswordConfirmation ? "visibility_off" : "visibility"}
+                      </span>
+                    </button>
+                  </div>
+                </label>
+
                 <label className="sm:col-span-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant dark:text-zinc-300">
                     Rol operativo inicial
@@ -366,6 +536,13 @@ const RegisterPage = (): JSX.Element => {
             >
               {isSubmitting ? "Creando tenant..." : "Crear cuenta y entrar"}
             </button>
+
+            <p className="text-center text-sm text-on-surface-variant">
+              ¿Ya tienes cuenta?{" "}
+              <Link href="/login" className="font-semibold text-primary">
+                Iniciar sesión
+              </Link>
+            </p>
           </form>
         </section>
       </div>
