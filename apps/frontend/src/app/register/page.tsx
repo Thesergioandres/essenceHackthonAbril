@@ -4,9 +4,14 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/application/hooks/useTenant";
+<<<<<<< HEAD
 import { OrganizationLocation } from "@/domain/models/Organization";
 import { login } from "@/infrastructure/network/authApi";
 import { setAuthTokenInRuntime } from "@/infrastructure/network/httpClient";
+=======
+import type { OrganizationLocation } from "@/domain/models/Organization";
+import { LocationPickerMap } from "@/infrastructure/ui/components/LocationPickerMap";
+>>>>>>> d1c1be03c3acffac9652993ee06ffb5cf0a93f7a
 import { createOrganization } from "@/infrastructure/network/organizationApi";
 import { LocationPickerMap } from "@/infrastructure/ui/components/LocationPickerMap";
 import { registerUser } from "@/infrastructure/network/userApi";
@@ -39,13 +44,13 @@ const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
 const resolveSafeNextPath = (value: string | null): string => {
   if (!value) {
-    return "/";
+    return "/dashboard";
   }
 
   const normalized = value.trim();
 
   if (!normalized.startsWith("/") || normalized.startsWith("//")) {
-    return "/";
+    return "/dashboard";
   }
 
   return normalized;
@@ -83,6 +88,18 @@ const RegisterPage = (): JSX.Element => {
   const nextPath = useMemo(() => {
     return resolveSafeNextPath(searchParams.get("next"));
   }, [searchParams]);
+
+  const selectedLocation = useMemo<OrganizationLocation>(() => {
+    const organizationLat = Number.parseFloat(formState.organizationLat);
+    const organizationLng = Number.parseFloat(formState.organizationLng);
+    const organizationAddress = formState.organizationAddress.trim();
+
+    return {
+      lat: Number.isFinite(organizationLat) ? organizationLat : 2.9273,
+      lng: Number.isFinite(organizationLng) ? organizationLng : -75.2819,
+      ...(organizationAddress.length > 0 ? { addressString: organizationAddress } : {})
+    };
+  }, [formState.organizationAddress, formState.organizationLat, formState.organizationLng]);
 
   useEffect(() => {
     if (!hasSession) {
@@ -260,8 +277,70 @@ const RegisterPage = (): JSX.Element => {
                   />
                 </label>
 
+<<<<<<< HEAD
                 <input type="hidden" name="organizationLat" value={formState.organizationLat} />
                 <input type="hidden" name="organizationLng" value={formState.organizationLng} />
+=======
+                <label>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Latitud
+                  </span>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={formState.organizationLat}
+                    onChange={(event) => {
+                      setFormState((current) => ({
+                        ...current,
+                        organizationLat: event.target.value
+                      }));
+                    }}
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    required
+                  />
+                </label>
+
+                <label>
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Longitud
+                  </span>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={formState.organizationLng}
+                    onChange={(event) => {
+                      setFormState((current) => ({
+                        ...current,
+                        organizationLng: event.target.value
+                      }));
+                    }}
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-on-surface outline-none focus:border-primary"
+                    required
+                  />
+                </label>
+
+                <label className="sm:col-span-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                    Ubicacion visual
+                  </span>
+                  <LocationPickerMap
+                    selectedLocation={selectedLocation}
+                    onLocationSelect={(location) => {
+                      setFormState((current) => ({
+                        ...current,
+                        organizationLat: location.lat.toFixed(6),
+                        organizationLng: location.lng.toFixed(6),
+                        organizationAddress:
+                          typeof location.addressString === "string" &&
+                          location.addressString.trim().length > 0
+                            ? location.addressString
+                            : current.organizationAddress
+                      }));
+                    }}
+                    className="mt-2"
+                  />
+                </label>
+>>>>>>> d1c1be03c3acffac9652993ee06ffb5cf0a93f7a
               </div>
             </div>
 
